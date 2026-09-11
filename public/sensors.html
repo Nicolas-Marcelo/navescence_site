@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NAVESCENCE | Sensores</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>SENSORES</h1>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="section">
+          <div class="section-heading sensors-page-heading">
+            <div>
+              <h2>Gerenciamento de sensores</h2>
+              <p>Cadastro e configuração dos dispositivos da infraestrutura NAVESCENCE</p>
+            </div>
+
+            <button id="newSensorButton" class="primary-button" type="button">
+              + Novo sensor
+            </button>
+          </div>
+
+          <div class="sensor-admin-summary">
+            <article class="metric-card">
+              <span class="metric-label">Cadastrados</span>
+              <strong id="registeredCount">0</strong>
+              <span class="metric-description">sensores</span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">Ativos</span>
+              <strong id="activeCount">0</strong>
+              <span class="metric-description">em operação</span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">Manutenção</span>
+              <strong id="maintenanceCount">0</strong>
+              <span class="metric-description">sensores</span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">Inativos</span>
+              <strong id="inactiveCount">0</strong>
+              <span class="metric-description">sensores</span>
+            </article>
+          </div>
+
+          <div class="filters sensors-admin-filters">
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+              <input
+                id="registeredSensorSearch"
+                type="text"
+                placeholder="Buscar por código, nome, MAC ou ambiente..."
+              >
+            </div>
+
+            <select id="registeredSensorStatus">
+              <option value="ALL">Todos os estados</option>
+              <option value="ACTIVE">Ativos</option>
+              <option value="MAINTENANCE">Manutenção</option>
+              <option value="INACTIVE">Inativos</option>
+            </select>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="sensor-table">
+                <thead>
+                  <tr>
+                    <th>Sensor</th>
+                    <th>MAC</th>
+                    <th>Ambiente</th>
+                    <th>Localização</th>
+                    <th>Posição</th>
+                    <th>Vizinhos</th>
+                    <th>Estado</th>
+                    <th>Atualizado em</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="registeredSensorsBody">
+                  <tr>
+                    <td colspan="9" class="loading-cell">
+                      Carregando sensores...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="sensorModalOverlay" class="modal-overlay"></div>
+
+  <div id="sensorModal" class="sensor-modal">
+    <div class="modal-header">
+      <div>
+        <span class="drawer-eyebrow">Infraestrutura</span>
+        <h2 id="sensorModalTitle">Novo sensor</h2>
+      </div>
+
+      <button id="closeSensorModal" class="drawer-close" type="button">
+        ×
+      </button>
+    </div>
+
+    <form id="sensorForm" class="sensor-form">
+      <input id="sensorId" type="hidden">
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="sensorCode">Código *</label>
+          <input
+            id="sensorCode"
+            type="text"
+            maxlength="30"
+            placeholder="NAV_S03"
+            required
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="sensorMac">MAC</label>
+          <input
+            id="sensorMac"
+            type="text"
+            maxlength="20"
+            placeholder="B4:BF:E9:00:00:00"
+          >
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="sensorName">Nome</label>
+          <input
+            id="sensorName"
+            type="text"
+            maxlength="100"
+            placeholder="Sensor corredor principal"
+          >
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="sensorEnvironment">Ambiente</label>
+
+          <select id="sensorEnvironment">
+            <option value="">Nenhum ambiente</option>
+          </select>
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="sensorLocation">Localização específica</label>
+          <input
+            id="sensorLocation"
+            type="text"
+            maxlength="150"
+            placeholder="Ex.: Próximo à entrada principal"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="sensorX">Posição X</label>
+          <input
+            id="sensorX"
+            type="number"
+            step="0.01"
+            placeholder="0"
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="sensorY">Posição Y</label>
+          <input
+            id="sensorY"
+            type="number"
+            step="0.01"
+            placeholder="0"
+          >
+        </div>
+      </div>
+
+      <div class="form-options">
+        <label class="toggle-option">
+          <input id="sensorActive" type="checkbox" checked>
+
+          <span>
+            <strong>Sensor ativo</strong>
+            <small>Participa da infraestrutura NAVESCENCE</small>
+          </span>
+        </label>
+
+        <label class="toggle-option">
+          <input id="sensorMaintenance" type="checkbox">
+
+          <span>
+            <strong>Em manutenção</strong>
+            <small>Sensor temporariamente fora de operação</small>
+          </span>
+        </label>
+      </div>
+
+      <div class="neighbors-field">
+        <div class="neighbors-heading">
+          <div>
+            <strong>Vizinhos</strong>
+            <span>Selecione os sensores diretamente conectados a este nó</span>
+          </div>
+        </div>
+
+        <div id="sensorNeighbors" class="neighbors-list"></div>
+      </div>
+
+      <div id="sensorFormError" class="form-error hidden"></div>
+
+      <div class="modal-actions">
+        <button
+          id="cancelSensorButton"
+          class="secondary-button"
+          type="button"
+        >
+          Cancelar
+        </button>
+
+        <button
+          id="saveSensorButton"
+          class="primary-button"
+          type="submit"
+        >
+          Salvar sensor
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/sidebar.js"></script>
+  <script src="/sensors.js"></script>
+</body>
+
+</html>

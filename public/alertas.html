@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NAVESCENCE | Alertas</title>
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/alertas.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>ALERTAS</h1>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="section">
+          <div class="section-heading alerts-page-heading">
+            <div>
+              <h2>Gerenciamento de alertas</h2>
+
+              <p>
+                Ocorrências detectadas automaticamente na infraestrutura NAVESCENCE
+              </p>
+            </div>
+
+            <button
+              id="refreshAlertsButton"
+              class="secondary-button"
+              type="button"
+            >
+              Atualizar
+            </button>
+          </div>
+
+          <div class="alerts-summary">
+            <article class="metric-card">
+              <span class="metric-label">
+                Ativos
+              </span>
+
+              <strong id="activeAlertCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                aguardando resolução
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Críticos
+              </span>
+
+              <strong id="criticalAlertCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                ativos
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Resolvidos
+              </span>
+
+              <strong id="resolvedAlertCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                registrados
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Total
+              </span>
+
+              <strong id="totalAlertCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                ocorrências
+              </span>
+            </article>
+          </div>
+
+          <div class="alerts-filters">
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+
+              <input
+                id="alertSearch"
+                type="text"
+                placeholder="Buscar por sensor, título ou mensagem..."
+              >
+            </div>
+
+            <select id="alertStatusFilter">
+              <option value="ALL">
+                Todos os estados
+              </option>
+
+              <option value="ACTIVE">
+                Ativos
+              </option>
+
+              <option value="RESOLVED">
+                Resolvidos
+              </option>
+            </select>
+
+            <select id="alertSeverityFilter">
+              <option value="ALL">
+                Todas as severidades
+              </option>
+
+              <option value="CRITICAL">
+                Crítico
+              </option>
+
+              <option value="WARNING">
+                Atenção
+              </option>
+
+              <option value="INFO">
+                Informativo
+              </option>
+            </select>
+
+            <select id="alertTypeFilter">
+              <option value="ALL">
+                Todos os tipos
+              </option>
+
+              <option value="NODE_OFFLINE">
+                Sensor offline
+              </option>
+
+              <option value="MISSING_NEIGHBOR">
+                Vizinho não detectado
+              </option>
+
+              <option value="VERIFICATION_TIMEOUT">
+                Timeout
+              </option>
+
+              <option value="VERIFICATION_ERROR">
+                Erro de verificação
+              </option>
+            </select>
+          </div>
+
+          <div class="alerts-list-header">
+            <div>
+              <h3>Ocorrências</h3>
+
+              <p>
+                Alertas ativos e resolvidos armazenados no sistema
+              </p>
+            </div>
+
+            <span id="visibleAlertsCount">
+              0 alertas
+            </span>
+          </div>
+
+          <div
+            id="alertsList"
+            class="persistent-alerts-list"
+          >
+            <div class="alerts-loading">
+              Carregando alertas...
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div
+    id="alertDrawerOverlay"
+    class="drawer-overlay"
+  ></div>
+
+  <aside
+    id="alertDrawer"
+    class="sensor-drawer alert-drawer"
+  >
+    <div class="drawer-header">
+      <div>
+        <span class="drawer-eyebrow">
+          Ocorrência
+        </span>
+
+        <h2 id="alertDrawerTitle">
+          Detalhes do alerta
+        </h2>
+      </div>
+
+      <button
+        id="closeAlertDrawer"
+        class="drawer-close"
+        type="button"
+      >
+        ×
+      </button>
+    </div>
+
+    <div
+      id="alertDrawerContent"
+      class="drawer-content"
+    ></div>
+  </aside>
+
+  <script src="/sidebar.js"></script>
+  <script src="/alertas.js"></script>
+</body>
+
+</html>

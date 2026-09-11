@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NAVESCENCE | Histórico</title>
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/historico.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>HISTÓRICO</h1>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="section">
+          <div class="section-heading history-page-heading">
+            <div>
+              <h2>Histórico de verificações</h2>
+
+              <p>
+                Registro das verificações automáticas e manuais executadas pela infraestrutura
+              </p>
+            </div>
+
+            <button
+              id="refreshHistoryButton"
+              class="secondary-button"
+              type="button"
+            >
+              Atualizar
+            </button>
+          </div>
+
+          <div class="history-summary">
+            <article class="metric-card">
+              <span class="metric-label">Verificações</span>
+              <strong id="historyTotalCount">0</strong>
+              <span class="metric-description">registradas</span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">Finalizadas</span>
+              <strong id="historyFinishedCount">0</strong>
+              <span class="metric-description">com sucesso</span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">Falhas</span>
+              <strong id="historyFailureCount">0</strong>
+              <span class="metric-description">offline ou timeout</span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">Manuais</span>
+              <strong id="historyManualCount">0</strong>
+              <span class="metric-description">executadas</span>
+            </article>
+          </div>
+
+          <div class="history-filters">
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+
+              <input
+                id="historySearch"
+                type="text"
+                placeholder="Buscar sensor..."
+              >
+            </div>
+
+            <select id="historySensorFilter">
+              <option value="ALL">Todos os sensores</option>
+            </select>
+
+            <select id="historyModeFilter">
+              <option value="ALL">Todos os modos</option>
+              <option value="AUTOMATIC">Automática</option>
+              <option value="MANUAL">Manual</option>
+            </select>
+
+            <select id="historyResultFilter">
+              <option value="ALL">Todos os resultados</option>
+              <option value="FINISHED">Finalizada</option>
+              <option value="OFFLINE">Offline</option>
+              <option value="TIMEOUT">Timeout</option>
+              <option value="ERROR">Erro</option>
+            </select>
+          </div>
+
+          <div class="history-table-header">
+            <div>
+              <h3>Registros</h3>
+              <p>Verificações mais recentes armazenadas no banco de dados</p>
+            </div>
+
+            <span id="historyVisibleCount">
+              0 registros
+            </span>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="sensor-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Sensor</th>
+                    <th>Modo</th>
+                    <th>Resultado</th>
+                    <th>Duração</th>
+                    <th>Leituras BLE</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="historyTableBody">
+                  <tr>
+                    <td colspan="7" class="loading-cell">
+                      Carregando histórico...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div
+    id="historyDrawerOverlay"
+    class="drawer-overlay"
+  ></div>
+
+  <aside
+    id="historyDrawer"
+    class="sensor-drawer history-drawer"
+  >
+    <div class="drawer-header">
+      <div>
+        <span class="drawer-eyebrow">
+          Verificação
+        </span>
+
+        <h2 id="historyDrawerTitle">
+          Detalhes
+        </h2>
+      </div>
+
+      <button
+        id="closeHistoryDrawer"
+        class="drawer-close"
+        type="button"
+      >
+        ×
+      </button>
+    </div>
+
+    <div
+      id="historyDrawerContent"
+      class="drawer-content"
+    ></div>
+  </aside>
+
+  <script src="/sidebar.js"></script>
+  <script src="/historico.js"></script>
+</body>
+
+</html>

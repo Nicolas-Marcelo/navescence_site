@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NAVESCENCE | Ambientes</title>
+
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>AMBIENTES</h1>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="section">
+          <div class="section-heading sensors-page-heading">
+            <div>
+              <h2>Gerenciamento de ambientes</h2>
+
+              <p>
+                Organização dos locais atendidos pela infraestrutura NAVESCENCE
+              </p>
+            </div>
+
+            <button
+              id="newEnvironmentButton"
+              class="primary-button"
+              type="button"
+            >
+              + Novo ambiente
+            </button>
+          </div>
+
+          <div class="sensor-admin-summary">
+            <article class="metric-card">
+              <span class="metric-label">
+                Cadastrados
+              </span>
+
+              <strong id="environmentCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                ambientes
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Sensores vinculados
+              </span>
+
+              <strong id="linkedSensorCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                sensores
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Sem sensores
+              </span>
+
+              <strong id="emptyEnvironmentCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                ambientes
+              </span>
+            </article>
+          </div>
+
+          <div class="filters sensors-admin-filters">
+            <div class="search-box">
+              <span class="search-icon">
+                ⌕
+              </span>
+
+              <input
+                id="environmentSearch"
+                type="text"
+                placeholder="Buscar ambiente..."
+              >
+            </div>
+          </div>
+
+          <div
+            id="environmentGrid"
+            class="environment-grid"
+          >
+            <div class="environment-loading">
+              Carregando ambientes...
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div
+    id="environmentModalOverlay"
+    class="modal-overlay"
+  ></div>
+
+  <div
+    id="environmentModal"
+    class="sensor-modal"
+  >
+    <div class="modal-header">
+      <div>
+        <span class="drawer-eyebrow">
+          Infraestrutura
+        </span>
+
+        <h2 id="environmentModalTitle">
+          Novo ambiente
+        </h2>
+      </div>
+
+      <button
+        id="closeEnvironmentModal"
+        class="drawer-close"
+        type="button"
+      >
+        ×
+      </button>
+    </div>
+
+    <form
+      id="environmentForm"
+      class="sensor-form"
+    >
+      <input
+        id="environmentId"
+        type="hidden"
+      >
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="environmentCode">
+            Código *
+          </label>
+
+          <input
+            id="environmentCode"
+            type="text"
+            maxlength="30"
+            placeholder="CORREDOR_PRINCIPAL"
+            required
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="environmentType">
+            Tipo
+          </label>
+
+          <select id="environmentType">
+            <option value="">
+              Selecione
+            </option>
+
+            <option value="CORREDOR">
+              Corredor
+            </option>
+
+            <option value="SALA">
+              Sala
+            </option>
+
+            <option value="RECEPCAO">
+              Recepção
+            </option>
+
+            <option value="BIBLIOTECA">
+              Biblioteca
+            </option>
+
+            <option value="AREA_COMUM">
+              Área comum
+            </option>
+
+            <option value="OUTRO">
+              Outro
+            </option>
+          </select>
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="environmentName">
+            Nome *
+          </label>
+
+          <input
+            id="environmentName"
+            type="text"
+            maxlength="100"
+            placeholder="Corredor principal"
+            required
+          >
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="environmentFloor">
+            Andar
+          </label>
+
+          <input
+            id="environmentFloor"
+            type="text"
+            maxlength="40"
+            value="Térreo"
+            placeholder="Térreo"
+          >
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="environmentDescription">
+            Descrição
+          </label>
+
+          <textarea
+            id="environmentDescription"
+            rows="4"
+            maxlength="200"
+            placeholder="Área piloto utilizada nos testes do NAVESCENCE"
+          ></textarea>
+        </div>
+      </div>
+
+      <div
+        id="environmentFormError"
+        class="form-error hidden"
+      ></div>
+
+      <div class="modal-actions">
+        <button
+          id="deleteEnvironmentButton"
+          class="danger-button hidden"
+          type="button"
+        >
+          Excluir
+        </button>
+
+        <div class="modal-actions-right">
+          <button
+            id="cancelEnvironmentButton"
+            class="secondary-button"
+            type="button"
+          >
+            Cancelar
+          </button>
+
+          <button
+            id="saveEnvironmentButton"
+            class="primary-button"
+            type="submit"
+          >
+            Salvar ambiente
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div
+    id="toast"
+    class="toast"
+  ></div>
+
+  <script src="/sidebar.js"></script>
+  <script src="/ambientes.js"></script>
+</body>
+
+</html>

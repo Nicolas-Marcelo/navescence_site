@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NAVESCENCE | Pontos de Interesse</title>
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/pois.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>PONTOS DE INTERESSE</h1>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="section">
+          <div class="section-heading poi-page-heading">
+            <div>
+              <h2>Pontos de interesse</h2>
+
+              <p>
+                Locais utilizados como destinos pelo sistema de navegação
+              </p>
+            </div>
+
+            <button
+              id="newPoiButton"
+              class="primary-button"
+              type="button"
+            >
+              + Novo ponto
+            </button>
+          </div>
+
+          <div class="poi-summary">
+            <article class="metric-card">
+              <span class="metric-label">
+                Cadastrados
+              </span>
+
+              <strong id="totalPoiCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                pontos de interesse
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Ativos
+              </span>
+
+              <strong id="activePoiCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                disponíveis para navegação
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Inativos
+              </span>
+
+              <strong id="inactivePoiCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                indisponíveis
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Tipos
+              </span>
+
+              <strong id="poiTypeCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                categorias cadastradas
+              </span>
+            </article>
+          </div>
+
+          <div class="poi-filters">
+            <div class="search-box">
+              <span class="search-icon">⌕</span>
+
+              <input
+                id="poiSearch"
+                type="text"
+                placeholder="Buscar ponto de interesse..."
+              >
+            </div>
+
+            <select id="poiStatusFilter">
+              <option value="ALL">
+                Todos os estados
+              </option>
+
+              <option value="ACTIVE">
+                Ativos
+              </option>
+
+              <option value="INACTIVE">
+                Inativos
+              </option>
+            </select>
+
+            <select id="poiTypeFilter">
+              <option value="ALL">
+                Todos os tipos
+              </option>
+            </select>
+          </div>
+
+          <div class="poi-table-header">
+            <div>
+              <h3>Locais cadastrados</h3>
+
+              <p>
+                Pontos vinculados aos sensores da infraestrutura
+              </p>
+            </div>
+
+            <span id="visiblePoiCount">
+              0 pontos
+            </span>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="sensor-table">
+                <thead>
+                  <tr>
+                    <th>Ponto</th>
+                    <th>Tipo</th>
+                    <th>Sensor</th>
+                    <th>Ambiente</th>
+                    <th>Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="poiTableBody">
+                  <tr>
+                    <td colspan="6" class="loading-cell">
+                      Carregando pontos de interesse...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div
+    id="poiModalOverlay"
+    class="poi-modal-overlay"
+  >
+    <div class="poi-modal">
+      <div class="poi-modal-header">
+        <div>
+          <span class="poi-modal-eyebrow">
+            NAVESCENCE
+          </span>
+
+          <h2 id="poiModalTitle">
+            Novo ponto de interesse
+          </h2>
+        </div>
+
+        <button
+          id="closePoiModal"
+          class="poi-modal-close"
+          type="button"
+        >
+          ×
+        </button>
+      </div>
+
+      <form id="poiForm">
+        <input
+          id="poiId"
+          type="hidden"
+        >
+
+        <div class="poi-form-grid">
+          <label>
+            <span>Código</span>
+
+            <input
+              id="poiCode"
+              type="text"
+              maxlength="40"
+              placeholder="EX: SECRETARIA"
+              required
+            >
+          </label>
+
+          <label>
+            <span>Nome</span>
+
+            <input
+              id="poiName"
+              type="text"
+              maxlength="120"
+              placeholder="Ex: Secretaria"
+              required
+            >
+          </label>
+
+          <label>
+            <span>Tipo</span>
+
+            <select
+              id="poiType"
+              required
+            >
+              <option value="">
+                Selecione
+              </option>
+
+              <option value="ENTRADA">
+                Entrada
+              </option>
+
+              <option value="SERVICO">
+                Serviço
+              </option>
+
+              <option value="BANHEIRO">
+                Banheiro
+              </option>
+
+              <option value="SALA">
+                Sala
+              </option>
+
+              <option value="ACESSIBILIDADE">
+                Acessibilidade
+              </option>
+
+              <option value="REFERENCIA">
+                Referência
+              </option>
+
+              <option value="OUTRO">
+                Outro
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>Sensor de referência</span>
+
+            <select
+              id="poiNode"
+              required
+            >
+              <option value="">
+                Selecione o sensor
+              </option>
+            </select>
+          </label>
+
+          <label class="poi-form-full">
+            <span>Descrição</span>
+
+            <textarea
+              id="poiDescription"
+              maxlength="255"
+              rows="3"
+              placeholder="Descreva o local..."
+            ></textarea>
+          </label>
+
+          <label class="poi-checkbox-row poi-form-full">
+            <input
+              id="poiActive"
+              type="checkbox"
+              checked
+            >
+
+            <span>
+              Disponível para navegação
+            </span>
+          </label>
+        </div>
+
+        <div
+          id="poiFormMessage"
+          class="poi-form-message"
+        ></div>
+
+        <div class="poi-modal-actions">
+          <button
+            id="cancelPoiButton"
+            class="secondary-button"
+            type="button"
+          >
+            Cancelar
+          </button>
+
+          <button
+            id="savePoiButton"
+            class="primary-button"
+            type="submit"
+          >
+            Salvar ponto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/sidebar.js"></script>
+  <script src="/pois.js"></script>
+</body>
+
+</html>

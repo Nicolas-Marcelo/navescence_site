@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Node {
+  id            Int          @id @default(autoincrement())
+  code          String       @unique @db.VarChar(30)
+  mac           String?      @unique @db.VarChar(20)
+  name          String?      @db.VarChar(100)
+  location      String?      @db.VarChar(150)
+  x             Float?
+  y             Float?
+  active        Boolean      @default(true)
+  maintenance   Boolean      @default(false)
+  environmentId Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  environment      Environment?      @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+  edgesA           Edge[]            @relation("NodeA")
+  edgesB           Edge[]            @relation("NodeB")
+  verificationRuns VerificationRun[]
+  alerts           Alert[]
+  pointsOfInterest PointOfInterest[]
+
+  @@index([environmentId])
+  @@map("nodes")
+}
+
+model Environment {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(30)
+  name        String   @db.VarChar(100)
+  type        String?  @db.VarChar(40)
+  floor       String   @default("Térreo") @db.VarChar(40)
+  description String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nodes Node[]
+
+  @@map("environments")
+}
+
+model Edge {
+  id        Int      @id @default(autoincrement())
+  nodeAId   Int
+  nodeBId   Int
+  distance  Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nodeA Node @relation("NodeA", fields: [nodeAId], references: [id], onDelete: Cascade)
+  nodeB Node @relation("NodeB", fields: [nodeBId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeAId, nodeBId])
+  @@index([nodeAId])
+  @@index([nodeBId])
+  @@map("edges")
+}
+
+model PointOfInterest {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(40)
+  name        String   @db.VarChar(120)
+  type        String   @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  nodeId      Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([nodeId])
+  @@index([type])
+  @@index([active])
+  @@map("points_of_interest")
+}
+
+model VerificationRun {
+  id         Int      @id @default(autoincrement())
+  nodeId     Int?
+  nodeCode   String   @db.VarChar(30)
+  mode       String   @db.VarChar(20)
+  result     String   @db.VarChar(20)
+  startedAt  DateTime
+  finishedAt DateTime
+  durationMs Int
+  createdAt  DateTime @default(now())
+
+  node     Node?             @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  readings NeighborReading[]
+  alerts   Alert[]
+
+  @@index([nodeId])
+  @@index([nodeCode])
+  @@index([startedAt])
+  @@map("verification_runs")
+}
+
+model NeighborReading {
+  id                Int      @id @default(autoincrement())
+  verificationRunId Int
+  neighborCode      String?  @db.VarChar(30)
+  mac               String?  @db.VarChar(20)
+  readings          Int?
+  validReadings     Int?
+  discardedReadings Int?
+  averageRssi       Float?
+  m15               Float?
+  minRssi           Float?
+  maxRssi           Float?
+  advertising       String?  @db.Text
+  createdAt         DateTime @default(now())
+
+  verificationRun VerificationRun @relation(fields: [verificationRunId], references: [id], onDelete: Cascade)
+
+  @@index([verificationRunId])
+  @@index([neighborCode])
+  @@map("neighbor_readings")
+}
+
+model Alert {
+  id                Int       @id @default(autoincrement())
+  nodeId            Int?
+  nodeCode          String    @db.VarChar(30)
+  verificationRunId Int?
+  type              String    @db.VarChar(50)
+  severity          String    @db.VarChar(20)
+  status            String    @default("ACTIVE") @db.VarChar(20)
+  title             String    @db.VarChar(150)
+  message           String    @db.VarChar(255)
+  openedAt          DateTime  @default(now())
+  lastSeenAt        DateTime  @default(now())
+  resolvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  node            Node?            @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  verificationRun VerificationRun? @relation(fields: [verificationRunId], references: [id], onDelete: SetNull)
+
+  @@index([nodeId])
+  @@index([nodeCode])
+  @@index([verificationRunId])
+  @@index([type])
+  @@index([status])
+  @@index([openedAt])
+  @@map("alerts")
+}

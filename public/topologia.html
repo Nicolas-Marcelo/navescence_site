@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NAVESCENCE | Topologia</title>
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/topologia.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>TOPOLOGIA</h1>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="section">
+          <div class="section-heading topology-page-heading">
+            <div>
+              <h2>Topologia da infraestrutura</h2>
+
+              <p>
+                Representação dos sensores, ambientes e conexões físicas do NAVESCENCE
+              </p>
+            </div>
+
+            <button
+              id="refreshTopologyButton"
+              class="secondary-button"
+              type="button"
+            >
+              Atualizar
+            </button>
+          </div>
+
+          <div class="topology-summary">
+            <article class="metric-card">
+              <span class="metric-label">
+                Sensores
+              </span>
+
+              <strong id="topologySensorCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                cadastrados
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Conexões
+              </span>
+
+              <strong id="topologyEdgeCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                arestas
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Ambientes
+              </span>
+
+              <strong id="topologyEnvironmentCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                representados
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Indisponíveis
+              </span>
+
+              <strong id="topologyOfflineCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                sensores
+              </span>
+            </article>
+          </div>
+
+          <div class="topology-toolbar">
+            <div>
+              <label for="topologyEnvironmentFilter">
+                Ambiente
+              </label>
+
+              <select id="topologyEnvironmentFilter">
+                <option value="ALL">
+                  Todos os ambientes
+                </option>
+              </select>
+            </div>
+
+            <div class="topology-updated">
+              <span>
+                Última atualização
+              </span>
+
+              <strong id="topologyUpdatedAt">
+                —
+              </strong>
+            </div>
+          </div>
+
+          <div class="topology-card">
+            <div class="topology-card-header">
+              <div>
+                <span class="topology-eyebrow">
+                  MAPA DA INFRAESTRUTURA
+                </span>
+
+                <h3 id="topologyTitle">
+                  Todos os ambientes
+                </h3>
+              </div>
+
+              <div class="topology-legend">
+                <span>
+                  <i class="legend-dot online"></i>
+                  Online
+                </span>
+
+                <span>
+                  <i class="legend-dot offline"></i>
+                  Offline
+                </span>
+
+                <span>
+                  <i class="legend-dot unknown"></i>
+                  Desconhecido
+                </span>
+              </div>
+            </div>
+
+            <div
+              id="topologyCanvas"
+              class="topology-canvas"
+            >
+              <svg
+                id="topologyLines"
+                class="topology-lines"
+              ></svg>
+
+              <div id="topologyNodes"></div>
+
+              <div
+                id="topologyEmpty"
+                class="topology-empty hidden"
+              >
+                <strong>
+                  Nenhum sensor para exibir
+                </strong>
+
+                <span>
+                  Cadastre sensores e configure seus ambientes e vizinhos.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="topology-details">
+            <div class="topology-details-header">
+              <div>
+                <h3>
+                  Conexões configuradas
+                </h3>
+
+                <p>
+                  Relações de vizinhança registradas na infraestrutura
+                </p>
+              </div>
+            </div>
+
+            <div class="table-card">
+              <div class="table-scroll">
+                <table class="sensor-table">
+                  <thead>
+                    <tr>
+                      <th>Sensor A</th>
+                      <th>Sensor B</th>
+                      <th>Distância</th>
+                      <th>Ambiente A</th>
+                      <th>Ambiente B</th>
+                    </tr>
+                  </thead>
+
+                  <tbody id="topologyEdgesBody">
+                    <tr>
+                      <td
+                        colspan="5"
+                        class="loading-cell"
+                      >
+                        Carregando topologia...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/sidebar.js"></script>
+  <script src="/topologia.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NAVESCENCE | Administração</title>
+
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>DASHBOARD</h1>
+        </div>
+
+        <div
+          id="systemConnection"
+          class="system-status connecting"
+        >
+          <span class="status-dot"></span>
+          Conectando...
+        </div>
+      </header>
+
+      <main class="content">
+        <section
+          id="overview"
+          class="section"
+        >
+          <div class="section-heading">
+            <div>
+              <h2>Visão geral</h2>
+              <p>Situação atual da infraestrutura</p>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <article class="metric-card">
+              <span class="metric-label">
+                Sensores
+              </span>
+
+              <strong id="totalNodes">
+                0
+              </strong>
+
+              <span class="metric-description">
+                cadastrados
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Online
+              </span>
+
+              <strong id="onlineNodes">
+                0
+              </strong>
+
+              <span class="metric-description">
+                disponíveis
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Offline
+              </span>
+
+              <strong id="offlineNodes">
+                0
+              </strong>
+
+              <span class="metric-description">
+                indisponíveis
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Alertas
+              </span>
+
+              <strong id="activeAlerts">
+                0
+              </strong>
+
+              <span class="metric-description">
+                ativos
+              </span>
+            </article>
+          </div>
+
+          <article class="verification-panel">
+            <div>
+              <span class="panel-eyebrow">
+                Verificação automática
+              </span>
+
+              <h3 id="verificationTitle">
+                Aguardando próxima verificação
+              </h3>
+
+              <p id="verificationDescription">
+                Nenhum sensor está sendo verificado neste momento.
+              </p>
+            </div>
+
+            <div class="verification-indicator">
+              <div
+                id="verificationPulse"
+                class="pulse idle"
+              ></div>
+
+              <span id="verificationState">
+                Aguardando
+              </span>
+            </div>
+          </article>
+        </section>
+
+        <section
+          id="alerts"
+          class="section"
+        >
+          <div class="section-heading">
+            <div>
+              <h2>Alertas ativos</h2>
+              <p>Ocorrências identificadas automaticamente</p>
+            </div>
+          </div>
+
+          <div id="alertsContainer">
+            <div class="no-alerts">
+              <span class="no-alerts-icon">
+                ✓
+              </span>
+
+              <div>
+                <strong>
+                  Nenhum alerta ativo
+                </strong>
+
+                <p>
+                  A infraestrutura está operando normalmente.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="sensors"
+          class="section"
+        >
+          <div class="section-heading sensors-heading">
+            <div>
+              <h2>Sensores</h2>
+
+              <p>
+                Monitoramento individual dos nós da infraestrutura
+              </p>
+            </div>
+
+            <span
+              id="visibleNodesCount"
+              class="result-count"
+            >
+              0 sensores
+            </span>
+          </div>
+
+          <div class="filters">
+            <div class="search-box">
+              <span class="search-icon">
+                ⌕
+              </span>
+
+              <input
+                id="sensorSearch"
+                type="text"
+                placeholder="Buscar sensor..."
+              >
+            </div>
+
+            <select id="presenceFilter">
+              <option value="ALL">
+                Todos os estados
+              </option>
+
+              <option value="ONLINE">
+                Online
+              </option>
+
+              <option value="OFFLINE">
+                Offline
+              </option>
+            </select>
+
+            <select id="diagnosticFilter">
+              <option value="ALL">
+                Todos os diagnósticos
+              </option>
+
+              <option value="OK">
+                Funcionamento normal
+              </option>
+
+              <option value="VERIFICANDO">
+                Verificando
+              </option>
+
+              <option value="NO_INDISPONIVEL">
+                Indisponível
+              </option>
+
+              <option value="VIZINHO_NAO_DETECTADO">
+                Vizinho não detectado
+              </option>
+            </select>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="sensor-table">
+                <thead>
+                  <tr>
+                    <th>Sensor</th>
+                    <th>Presença</th>
+                    <th>Verificação</th>
+                    <th>Vizinho esperado</th>
+                    <th>Vizinho detectado</th>
+                    <th>Última comunicação</th>
+                    <th>Diagnóstico</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="sensorsTableBody">
+                  <tr>
+                    <td
+                      colspan="8"
+                      class="loading-cell"
+                    >
+                      Aguardando dados...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div
+    id="drawerOverlay"
+    class="drawer-overlay"
+  ></div>
+
+  <aside
+    id="sensorDrawer"
+    class="sensor-drawer"
+  >
+    <div class="drawer-header">
+      <div>
+        <span class="drawer-eyebrow">
+          Detalhes do sensor
+        </span>
+
+        <h2 id="drawerNodeName">
+          NAV_S00
+        </h2>
+      </div>
+
+      <button
+        id="closeDrawer"
+        class="drawer-close"
+        type="button"
+      >
+        ×
+      </button>
+    </div>
+
+    <div
+      id="drawerContent"
+      class="drawer-content"
+    ></div>
+  </aside>
+
+  <script src="/sidebar.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+
+</html>

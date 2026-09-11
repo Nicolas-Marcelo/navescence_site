@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>NAVESCENCE | Verificações</title>
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/verificacoes.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+
+    <div class="page">
+      <header class="topbar">
+        <div>
+          <h1>VERIFICAÇÕES</h1>
+        </div>
+
+        <div
+          id="verificationConnection"
+          class="system-status connecting"
+        >
+          <span class="status-dot"></span>
+          Conectando...
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="section">
+          <div class="section-heading verification-page-heading">
+            <div>
+              <h2>Monitoramento das verificações</h2>
+
+              <p>
+                Acompanhamento do rodízio e das leituras BLE da infraestrutura NAVESCENCE
+              </p>
+            </div>
+
+            <button
+              id="refreshVerificationButton"
+              class="secondary-button"
+              type="button"
+            >
+              Atualizar
+            </button>
+          </div>
+
+          <div class="verification-summary">
+            <article class="metric-card">
+              <span class="metric-label">
+                Sensores
+              </span>
+
+              <strong id="verificationSensorCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                monitorados
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Verificando
+              </span>
+
+              <strong id="checkingCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                neste momento
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Online
+              </span>
+
+              <strong id="verificationOnlineCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                disponíveis
+              </span>
+            </article>
+
+            <article class="metric-card">
+              <span class="metric-label">
+                Offline
+              </span>
+
+              <strong id="verificationOfflineCount">
+                0
+              </strong>
+
+              <span class="metric-description">
+                indisponíveis
+              </span>
+            </article>
+          </div>
+
+          <article class="verification-live-card">
+            <div class="verification-live-main">
+              <div
+                id="verificationLiveIcon"
+                class="verification-live-icon idle"
+              >
+                ↻
+              </div>
+
+              <div>
+                <span class="verification-live-eyebrow">
+                  RODÍZIO
+                </span>
+
+                <h3 id="verificationLiveTitle">
+                  Aguardando próxima verificação
+                </h3>
+
+                <p id="verificationLiveDescription">
+                  Nenhum sensor está realizando uma leitura BLE neste momento.
+                </p>
+              </div>
+            </div>
+
+            <div class="verification-live-status">
+              <span
+                id="verificationLiveDot"
+                class="verification-status-dot idle"
+              ></span>
+
+              <strong id="verificationLiveState">
+                Aguardando
+              </strong>
+            </div>
+          </article>
+
+          <article class="manual-verification-card">
+            <div class="manual-verification-info">
+              <span class="verification-live-eyebrow">
+                EXECUÇÃO MANUAL
+              </span>
+
+              <h3>Executar uma verificação</h3>
+
+              <p>
+                Inicie uma rodada completa ou verifique apenas um sensor.
+              </p>
+
+              <span
+                id="manualVerificationStatus"
+                class="manual-verification-status"
+              >
+                Carregando estado do coordenador...
+              </span>
+            </div>
+
+            <div class="manual-verification-controls">
+              <label for="manualVerificationTarget">
+                Alvo da verificação
+              </label>
+
+              <select id="manualVerificationTarget">
+                <option value="ALL">
+                  Rodada completa
+                </option>
+              </select>
+
+              <button
+                id="runManualVerificationButton"
+                class="primary-button"
+                type="button"
+              >
+                Iniciar verificação
+              </button>
+            </div>
+          </article>
+
+          <div
+            id="manualVerificationMessage"
+            class="manual-verification-message hidden"
+          ></div>
+
+          <div class="verification-section-heading">
+            <div>
+              <h3>Estado dos sensores</h3>
+
+              <p>
+                Resultado mais recente das verificações executadas pelo sistema
+              </p>
+            </div>
+
+            <span
+              id="verificationUpdatedAt"
+              class="verification-updated"
+            >
+              —
+            </span>
+          </div>
+
+          <div
+            class="verification-grid"
+            id="verificationGrid"
+          >
+            <div class="verification-empty">
+              Carregando informações...
+            </div>
+          </div>
+
+          <div class="verification-section-heading readings-heading">
+            <div>
+              <h3>Últimas leituras BLE</h3>
+
+              <p>
+                Métricas recebidas durante a verificação mais recente de cada nó
+              </p>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-scroll">
+              <table class="sensor-table verification-table">
+                <thead>
+                  <tr>
+                    <th>Scanner</th>
+                    <th>Vizinho</th>
+                    <th>MAC</th>
+                    <th>Leituras</th>
+                    <th>Válidas</th>
+                    <th>Descartadas</th>
+                    <th>RSSI médio</th>
+                    <th>M15</th>
+                  </tr>
+                </thead>
+
+                <tbody id="verificationReadingsBody">
+                  <tr>
+                    <td
+                      colspan="8"
+                      class="loading-cell"
+                    >
+                      Aguardando leituras...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="/sidebar.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/verificacoes.js"></script>
+</body>
+
+</html>

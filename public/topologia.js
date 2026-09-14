@@ -10,12 +10,27 @@ const topologyOfflineCount = document.getElementById("topologyOfflineCount");
 const topologyEnvironmentFilter = document.getElementById("topologyEnvironmentFilter");
 const topologyUpdatedAt = document.getElementById("topologyUpdatedAt");
 const topologyTitle = document.getElementById("topologyTitle");
-const topologyCanvas = document.getElementById("topologyCanvas");
 const topologyLines = document.getElementById("topologyLines");
 const topologyNodes = document.getElementById("topologyNodes");
 const topologyEmpty = document.getElementById("topologyEmpty");
 const topologyEdgesBody = document.getElementById("topologyEdgesBody");
+
 const refreshTopologyButton = document.getElementById("refreshTopologyButton");
+const newConnectionButton = document.getElementById("newConnectionButton");
+
+const connectionModalOverlay = document.getElementById("connectionModalOverlay");
+const connectionModal = document.getElementById("connectionModal");
+const closeConnectionModal = document.getElementById("closeConnectionModal");
+const cancelConnectionButton = document.getElementById("cancelConnectionButton");
+
+const connectionForm = document.getElementById("connectionForm");
+const connectionNodeA = document.getElementById("connectionNodeA");
+const connectionNodeB = document.getElementById("connectionNodeB");
+const connectionDistance = document.getElementById("connectionDistance");
+const connectionFormError = document.getElementById("connectionFormError");
+const saveConnectionButton = document.getElementById("saveConnectionButton");
+
+const toast = document.getElementById("toast");
 
 async function loadTopology() {
   try {
@@ -34,9 +49,17 @@ async function loadTopology() {
       fetch("/api/dashboard")
     ]);
 
-    if (!sensorsResponse.ok) throw new Error("Não foi possível carregar os sensores.");
-    if (!environmentsResponse.ok) throw new Error("Não foi possível carregar os ambientes.");
-    if (!topologyResponse.ok) throw new Error("Não foi possível carregar as conexões.");
+    if (!sensorsResponse.ok) {
+      throw new Error("Não foi possível carregar os sensores.");
+    }
+
+    if (!environmentsResponse.ok) {
+      throw new Error("Não foi possível carregar os ambientes.");
+    }
+
+    if (!topologyResponse.ok) {
+      throw new Error("Não foi possível carregar as conexões.");
+    }
 
     sensors = await sensorsResponse.json();
     environments = await environmentsResponse.json();
@@ -47,20 +70,31 @@ async function loadTopology() {
       : null;
 
     renderEnvironmentFilter();
+    renderConnectionOptions();
     renderSummary();
     renderTopology();
     renderEdges();
     renderUpdatedAt();
+
+    newConnectionButton.disabled =
+      sensors.length < 2;
   } catch (error) {
     topologyNodes.innerHTML = "";
 
     topologyEmpty.classList.remove("hidden");
-    topologyEmpty.querySelector("strong").textContent = "Não foi possível carregar a topologia";
-    topologyEmpty.querySelector("span").textContent = error.message;
+
+    topologyEmpty.querySelector("strong").textContent =
+      "Não foi possível carregar a topologia";
+
+    topologyEmpty.querySelector("span").textContent =
+      error.message;
 
     topologyEdgesBody.innerHTML = `
       <tr>
-        <td colspan="5" class="loading-cell">
+        <td
+          colspan="6"
+          class="loading-cell"
+        >
           ${escapeHtml(error.message)}
         </td>
       </tr>
@@ -72,125 +106,238 @@ async function loadTopology() {
 }
 
 function renderEnvironmentFilter() {
-  const selected = topologyEnvironmentFilter.value;
+  const selected =
+    topologyEnvironmentFilter.value;
 
   topologyEnvironmentFilter.innerHTML = `
-    <option value="ALL">Todos os ambientes</option>
+    <option value="ALL">
+      Todos os ambientes
+    </option>
   `;
 
   for (const environment of environments) {
-    const option = document.createElement("option");
+    const option =
+      document.createElement("option");
 
-    option.value = environment.id;
-    option.textContent = environment.name;
+    option.value =
+      environment.id;
 
-    topologyEnvironmentFilter.appendChild(option);
+    option.textContent =
+      environment.name;
+
+    topologyEnvironmentFilter.appendChild(
+      option
+    );
   }
 
   const stillExists =
     selected === "ALL" ||
-    environments.some(environment => String(environment.id) === selected);
+    environments.some(
+      environment =>
+        String(environment.id) === selected
+    );
 
-  topologyEnvironmentFilter.value = stillExists
-    ? selected
-    : "ALL";
+  topologyEnvironmentFilter.value =
+    stillExists
+      ? selected
+      : "ALL";
+}
+
+function renderConnectionOptions() {
+  const sortedSensors =
+    [...sensors].sort(
+      (a, b) =>
+        a.code.localeCompare(
+          b.code,
+          undefined,
+          { numeric: true }
+        )
+    );
+
+  const options =
+    sortedSensors
+      .map(sensor => {
+        return `
+          <option value="${escapeHtml(sensor.code)}">
+            ${escapeHtml(sensor.code)}
+            ${sensor.name ? `— ${escapeHtml(sensor.name)}` : ""}
+          </option>
+        `;
+      })
+      .join("");
+
+  connectionNodeA.innerHTML =
+    options;
+
+  connectionNodeB.innerHTML =
+    options;
+
+  if (sortedSensors.length >= 2) {
+    connectionNodeA.value =
+      sortedSensors[0].code;
+
+    connectionNodeB.value =
+      sortedSensors[1].code;
+  }
 }
 
 function renderSummary() {
-  const unavailable = sensors.filter(sensor => {
-    return getPresence(sensor.code) === "OFFLINE";
-  }).length;
+  const unavailable =
+    sensors.filter(sensor => {
+      return (
+        getPresence(sensor.code) ===
+        "OFFLINE"
+      );
+    }).length;
 
-  topologySensorCount.textContent = sensors.length;
-  topologyEdgeCount.textContent = topology.length;
-  topologyEnvironmentCount.textContent = environments.length;
-  topologyOfflineCount.textContent = unavailable;
+  topologySensorCount.textContent =
+    sensors.length;
+
+  topologyEdgeCount.textContent =
+    topology.length;
+
+  topologyEnvironmentCount.textContent =
+    environments.length;
+
+  topologyOfflineCount.textContent =
+    unavailable;
 }
 
 function renderTopology() {
-  const environmentId = topologyEnvironmentFilter.value;
+  const environmentId =
+    topologyEnvironmentFilter.value;
 
   const visibleSensors =
     environmentId === "ALL"
       ? sensors
-      : sensors.filter(sensor => String(sensor.environmentId) === environmentId);
+      : sensors.filter(
+          sensor =>
+            String(sensor.environmentId) ===
+            environmentId
+        );
 
-  const visibleIds = new Set(
-    visibleSensors.map(sensor => sensor.id)
+  const visibleIds =
+    new Set(
+      visibleSensors.map(
+        sensor => sensor.id
+      )
+    );
+
+  const visibleEdges =
+    topology.filter(edge => {
+      return (
+        visibleIds.has(edge.nodeAId) &&
+        visibleIds.has(edge.nodeBId)
+      );
+    });
+
+  updateTopologyTitle(
+    environmentId
   );
-
-  const visibleEdges = topology.filter(edge => {
-    return visibleIds.has(edge.nodeAId) &&
-      visibleIds.has(edge.nodeBId);
-  });
-
-  updateTopologyTitle(environmentId);
 
   topologyLines.innerHTML = "";
   topologyNodes.innerHTML = "";
 
   if (visibleSensors.length === 0) {
-    topologyEmpty.classList.remove("hidden");
+    topologyEmpty.classList.remove(
+      "hidden"
+    );
+
     return;
   }
 
-  topologyEmpty.classList.add("hidden");
+  topologyEmpty.classList.add(
+    "hidden"
+  );
 
-  const positions = calculatePositions(visibleSensors);
+  const positions =
+    calculatePositions(
+      visibleSensors
+    );
 
   for (const edge of visibleEdges) {
-    const start = positions.get(edge.nodeAId);
-    const end = positions.get(edge.nodeBId);
+    const start =
+      positions.get(edge.nodeAId);
+
+    const end =
+      positions.get(edge.nodeBId);
 
     if (!start || !end) continue;
 
-    drawEdge(edge, start, end);
+    drawEdge(
+      edge,
+      start,
+      end
+    );
   }
 
   for (const sensor of visibleSensors) {
-    const position = positions.get(sensor.id);
+    const position =
+      positions.get(sensor.id);
 
     if (!position) continue;
 
-    drawNode(sensor, position);
+    drawNode(
+      sensor,
+      position
+    );
   }
 }
 
 function calculatePositions(visibleSensors) {
-  const positions = new Map();
+  const positions =
+    new Map();
 
   if (visibleSensors.length === 1) {
-    positions.set(visibleSensors[0].id, {
-      x: 50,
-      y: 50
-    });
+    positions.set(
+      visibleSensors[0].id,
+      {
+        x: 50,
+        y: 50
+      }
+    );
 
     return positions;
   }
 
-  const sensorsWithPosition = visibleSensors.filter(sensor => {
-    return Number.isFinite(Number(sensor.x)) &&
-      Number.isFinite(Number(sensor.y)) &&
-      sensor.x !== null &&
-      sensor.y !== null;
-  });
+  const sensorsWithPosition =
+    visibleSensors.filter(sensor => {
+      return (
+        Number.isFinite(Number(sensor.x)) &&
+        Number.isFinite(Number(sensor.y)) &&
+        sensor.x !== null &&
+        sensor.y !== null
+      );
+    });
 
   if (
-    sensorsWithPosition.length === visibleSensors.length &&
-    hasCoordinateVariation(sensorsWithPosition)
+    sensorsWithPosition.length ===
+      visibleSensors.length &&
+    hasCoordinateVariation(
+      sensorsWithPosition
+    )
   ) {
-    return calculateRealPositions(visibleSensors);
+    return calculateRealPositions(
+      visibleSensors
+    );
   }
 
   if (visibleSensors.length <= 4) {
-    visibleSensors.forEach((sensor, index) => {
-      const spacing = 70 / (visibleSensors.length - 1);
+    visibleSensors.forEach(
+      (sensor, index) => {
+        const spacing =
+          70 /
+          (visibleSensors.length - 1);
 
-      positions.set(sensor.id, {
-        x: 15 + spacing * index,
-        y: 50
-      });
-    });
+        positions.set(
+          sensor.id,
+          {
+            x: 15 + spacing * index,
+            y: 50
+          }
+        );
+      }
+    );
 
     return positions;
   }
@@ -200,77 +347,173 @@ function calculatePositions(visibleSensors) {
   const radiusX = 36;
   const radiusY = 32;
 
-  visibleSensors.forEach((sensor, index) => {
-    const angle =
-      (Math.PI * 2 * index) /
-        visibleSensors.length -
-      Math.PI / 2;
+  visibleSensors.forEach(
+    (sensor, index) => {
+      const angle =
+        (
+          Math.PI *
+          2 *
+          index
+        ) /
+          visibleSensors.length -
+        Math.PI / 2;
 
-    positions.set(sensor.id, {
-      x: centerX + Math.cos(angle) * radiusX,
-      y: centerY + Math.sin(angle) * radiusY
-    });
-  });
+      positions.set(
+        sensor.id,
+        {
+          x:
+            centerX +
+            Math.cos(angle) *
+              radiusX,
+
+          y:
+            centerY +
+            Math.sin(angle) *
+              radiusY
+        }
+      );
+    }
+  );
 
   return positions;
 }
 
 function hasCoordinateVariation(items) {
-  const xValues = new Set(items.map(sensor => Number(sensor.x)));
-  const yValues = new Set(items.map(sensor => Number(sensor.y)));
+  const xValues =
+    new Set(
+      items.map(
+        sensor =>
+          Number(sensor.x)
+      )
+    );
 
-  return xValues.size > 1 || yValues.size > 1;
+  const yValues =
+    new Set(
+      items.map(
+        sensor =>
+          Number(sensor.y)
+      )
+    );
+
+  return (
+    xValues.size > 1 ||
+    yValues.size > 1
+  );
 }
 
 function calculateRealPositions(items) {
-  const positions = new Map();
+  const positions =
+    new Map();
 
-  const xs = items.map(sensor => Number(sensor.x));
-  const ys = items.map(sensor => Number(sensor.y));
+  const xs =
+    items.map(
+      sensor =>
+        Number(sensor.x)
+    );
 
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
+  const ys =
+    items.map(
+      sensor =>
+        Number(sensor.y)
+    );
 
-  const rangeX = maxX - minX || 1;
-  const rangeY = maxY - minY || 1;
+  const minX =
+    Math.min(...xs);
+
+  const maxX =
+    Math.max(...xs);
+
+  const minY =
+    Math.min(...ys);
+
+  const maxY =
+    Math.max(...ys);
+
+  const rangeX =
+    maxX - minX || 1;
+
+  const rangeY =
+    maxY - minY || 1;
 
   for (const sensor of items) {
     const normalizedX =
-      (Number(sensor.x) - minX) / rangeX;
+      (
+        Number(sensor.x) -
+        minX
+      ) /
+      rangeX;
 
     const normalizedY =
-      (Number(sensor.y) - minY) / rangeY;
+      (
+        Number(sensor.y) -
+        minY
+      ) /
+      rangeY;
 
-    positions.set(sensor.id, {
-      x: 15 + normalizedX * 70,
-      y: 18 + normalizedY * 64
-    });
+    positions.set(
+      sensor.id,
+      {
+        x:
+          15 +
+          normalizedX *
+            70,
+
+        y:
+          18 +
+          normalizedY *
+            64
+      }
+    );
   }
 
   return positions;
 }
 
 function drawEdge(edge, start, end) {
-  const line = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "line"
+  const line =
+    document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
+
+  line.setAttribute(
+    "x1",
+    `${start.x}%`
   );
 
-  line.setAttribute("x1", `${start.x}%`);
-  line.setAttribute("y1", `${start.y}%`);
-  line.setAttribute("x2", `${end.x}%`);
-  line.setAttribute("y2", `${end.y}%`);
-  line.setAttribute("class", "topology-edge");
+  line.setAttribute(
+    "y1",
+    `${start.y}%`
+  );
 
-  topologyLines.appendChild(line);
+  line.setAttribute(
+    "x2",
+    `${end.x}%`
+  );
 
-  if (edge.distance !== null && edge.distance !== undefined) {
-    const label = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "text"
-    );
+  line.setAttribute(
+    "y2",
+    `${end.y}%`
+  );
+
+  line.setAttribute(
+    "class",
+    "topology-edge"
+  );
+
+  topologyLines.appendChild(
+    line
+  );
+
+  if (
+    edge.distance !== null &&
+    edge.distance !== undefined
+  ) {
+    const label =
+      document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text"
+      );
 
     label.setAttribute(
       "x",
@@ -279,7 +522,10 @@ function drawEdge(edge, start, end) {
 
     label.setAttribute(
       "y",
-      `${(start.y + end.y) / 2 - 3}%`
+      `${
+        (start.y + end.y) / 2 -
+        3
+      }%`
     );
 
     label.setAttribute(
@@ -287,29 +533,41 @@ function drawEdge(edge, start, end) {
       "topology-edge-label"
     );
 
-    label.textContent = `${edge.distance} m`;
+    label.textContent =
+      `${edge.distance} m`;
 
-    topologyLines.appendChild(label);
+    topologyLines.appendChild(
+      label
+    );
   }
 }
 
 function drawNode(sensor, position) {
-  const presence = getPresence(sensor.code);
-  const diagnostic = getDiagnostic(sensor.code);
+  const presence =
+    getPresence(sensor.code);
+
+  const diagnostic =
+    getDiagnostic(sensor.code);
 
   const environment =
     sensor.environment?.name ??
     "Sem ambiente";
 
-  const node = document.createElement("article");
+  const node =
+    document.createElement(
+      "article"
+    );
 
   node.className = `
     topology-node
     ${presence.toLowerCase()}
   `.trim();
 
-  node.style.left = `${position.x}%`;
-  node.style.top = `${position.y}%`;
+  node.style.left =
+    `${position.x}%`;
+
+  node.style.top =
+    `${position.y}%`;
 
   node.innerHTML = `
     <div class="topology-node-header">
@@ -324,41 +582,81 @@ function drawNode(sensor, position) {
     </div>
 
     <div class="topology-node-body">
-      <strong>${escapeHtml(sensor.code)}</strong>
-      <span>${escapeHtml(sensor.name ?? "Sensor NAVESCENCE")}</span>
+      <strong>
+        ${escapeHtml(sensor.code)}
+      </strong>
+
+      <span>
+        ${escapeHtml(
+          sensor.name ??
+          "Sensor NAVESCENCE"
+        )}
+      </span>
     </div>
 
     <div class="topology-node-meta">
-      <span>${escapeHtml(environment)}</span>
-      <span>${escapeHtml(formatDiagnostic(diagnostic))}</span>
+      <span>
+        ${escapeHtml(environment)}
+      </span>
+
+      <span>
+        ${escapeHtml(
+          formatDiagnostic(
+            diagnostic
+          )
+        )}
+      </span>
     </div>
   `;
 
-  topologyNodes.appendChild(node);
+  topologyNodes.appendChild(
+    node
+  );
 }
 
 function renderEdges() {
-  const environmentId = topologyEnvironmentFilter.value;
+  const environmentId =
+    topologyEnvironmentFilter.value;
 
-  let visibleEdges = [...topology];
+  let visibleEdges =
+    [...topology];
 
   if (environmentId !== "ALL") {
-    const allowedIds = new Set(
-      sensors
-        .filter(sensor => String(sensor.environmentId) === environmentId)
-        .map(sensor => sensor.id)
-    );
+    const allowedIds =
+      new Set(
+        sensors
+          .filter(
+            sensor =>
+              String(
+                sensor.environmentId
+              ) ===
+              environmentId
+          )
+          .map(
+            sensor => sensor.id
+          )
+      );
 
-    visibleEdges = topology.filter(edge => {
-      return allowedIds.has(edge.nodeAId) &&
-        allowedIds.has(edge.nodeBId);
-    });
+    visibleEdges =
+      topology.filter(edge => {
+        return (
+          allowedIds.has(
+            edge.nodeAId
+          ) &&
+          allowedIds.has(
+            edge.nodeBId
+          )
+        );
+      });
   }
 
   if (visibleEdges.length === 0) {
     topologyEdgesBody.innerHTML = `
       <tr>
-        <td colspan="5" class="loading-cell">
+        <td
+          colspan="6"
+          class="loading-cell"
+        >
           Nenhuma conexão configurada.
         </td>
       </tr>
@@ -367,53 +665,113 @@ function renderEdges() {
     return;
   }
 
-  topologyEdgesBody.innerHTML = visibleEdges
-    .map(edge => {
-      return `
-        <tr>
-          <td>
-            <span class="sensor-code">
-              ${escapeHtml(edge.nodeA?.code ?? "—")}
-            </span>
-          </td>
+  topologyEdgesBody.innerHTML =
+    visibleEdges
+      .map(edge => {
+        return `
+          <tr>
+            <td>
+              <span class="sensor-code">
+                ${escapeHtml(
+                  edge.nodeA?.code ??
+                  "—"
+                )}
+              </span>
+            </td>
 
-          <td>
-            <span class="sensor-code">
-              ${escapeHtml(edge.nodeB?.code ?? "—")}
-            </span>
-          </td>
+            <td>
+              <span class="sensor-code">
+                ${escapeHtml(
+                  edge.nodeB?.code ??
+                  "—"
+                )}
+              </span>
+            </td>
 
-          <td>
-            ${
-              edge.distance !== null &&
-              edge.distance !== undefined
-                ? `${escapeHtml(edge.distance)} m`
-                : "—"
-            }
-          </td>
+            <td>
+              ${
+                edge.distance !== null &&
+                edge.distance !== undefined
+                  ? `${escapeHtml(edge.distance)} m`
+                  : `
+                    <span class="topology-distance-missing">
+                      Não informada
+                    </span>
+                  `
+              }
+            </td>
 
-          <td>
-            ${escapeHtml(edge.nodeA?.environment?.name ?? getEnvironmentName(edge.nodeA?.environmentId))}
-          </td>
+            <td>
+              ${escapeHtml(
+                edge.nodeA
+                  ?.environment
+                  ?.name ??
+                getEnvironmentName(
+                  edge.nodeA
+                    ?.environmentId
+                )
+              )}
+            </td>
 
-          <td>
-            ${escapeHtml(edge.nodeB?.environment?.name ?? getEnvironmentName(edge.nodeB?.environmentId))}
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
+            <td>
+              ${escapeHtml(
+                edge.nodeB
+                  ?.environment
+                  ?.name ??
+                getEnvironmentName(
+                  edge.nodeB
+                    ?.environmentId
+                )
+              )}
+            </td>
+
+            <td class="topology-actions-cell">
+              <button
+                class="topology-remove-button"
+                type="button"
+                data-edge-id="${edge.id}"
+              >
+                Remover
+              </button>
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+
+  document
+    .querySelectorAll(
+      ".topology-remove-button"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          removeConnection(
+            Number(
+              button.dataset.edgeId
+            )
+          );
+        }
+      );
+    });
 }
 
 function updateTopologyTitle(environmentId) {
   if (environmentId === "ALL") {
-    topologyTitle.textContent = "Todos os ambientes";
+    topologyTitle.textContent =
+      "Todos os ambientes";
+
     return;
   }
 
-  const environment = environments.find(item => {
-    return String(item.id) === environmentId;
-  });
+  const environment =
+    environments.find(item => {
+      return (
+        String(item.id) ===
+        environmentId
+      );
+    });
 
   topologyTitle.textContent =
     environment?.name ??
@@ -421,27 +779,37 @@ function updateTopologyTitle(environmentId) {
 }
 
 function getPresence(code) {
-  const node = dashboard?.nodes?.[code];
+  const node =
+    dashboard?.nodes?.[code];
 
-  return node?.presence ??
-    "DESCONHECIDO";
+  return (
+    node?.presence ??
+    "DESCONHECIDO"
+  );
 }
 
 function getDiagnostic(code) {
-  const node = dashboard?.nodes?.[code];
+  const node =
+    dashboard?.nodes?.[code];
 
-  return node?.diagnostic ??
-    "DESCONHECIDO";
+  return (
+    node?.diagnostic ??
+    "DESCONHECIDO"
+  );
 }
 
 function getEnvironmentName(id) {
   if (!id) return "—";
 
-  const environment = environments.find(item => {
-    return item.id === id;
-  });
+  const environment =
+    environments.find(
+      item => item.id === id
+    );
 
-  return environment?.name ?? "—";
+  return (
+    environment?.name ??
+    "—"
+  );
 }
 
 function formatPresence(presence) {
@@ -451,7 +819,10 @@ function formatPresence(presence) {
     DESCONHECIDO: "Desconhecido"
   };
 
-  return values[presence] ?? presence;
+  return (
+    values[presence] ??
+    presence
+  );
 }
 
 function formatDiagnostic(diagnostic) {
@@ -459,12 +830,16 @@ function formatDiagnostic(diagnostic) {
     OK: "Operacional",
     VERIFICANDO: "Verificando",
     NO_INDISPONIVEL: "Indisponível",
-    VIZINHO_NAO_DETECTADO: "Vizinho não detectado",
-    DESCONHECIDO: "Aguardando diagnóstico"
+    VIZINHO_NAO_DETECTADO:
+      "Vizinho não detectado",
+    DESCONHECIDO:
+      "Aguardando diagnóstico"
   };
 
-  return values[diagnostic] ??
-    diagnostic;
+  return (
+    values[diagnostic] ??
+    diagnostic
+  );
 }
 
 function renderUpdatedAt() {
@@ -472,23 +847,259 @@ function renderUpdatedAt() {
     dashboard?.updatedAt ??
     new Date().toISOString();
 
-  const date = new Date(value);
+  const date =
+    new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
-    topologyUpdatedAt.textContent = "—";
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    topologyUpdatedAt.textContent =
+      "—";
+
     return;
   }
 
   topologyUpdatedAt.textContent =
-    date.toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
+    date.toLocaleTimeString(
+      "pt-BR",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }
+    );
+}
+
+function openConnectionModal() {
+  if (sensors.length < 2) {
+    showToast(
+      "Cadastre pelo menos dois sensores."
+    );
+
+    return;
+  }
+
+  connectionForm.reset();
+
+  connectionFormError.classList.add(
+    "hidden"
+  );
+
+  renderConnectionOptions();
+
+  connectionModal.classList.add(
+    "open"
+  );
+
+  connectionModalOverlay.classList.add(
+    "open"
+  );
+}
+
+function hideConnectionModal() {
+  connectionModal.classList.remove(
+    "open"
+  );
+
+  connectionModalOverlay.classList.remove(
+    "open"
+  );
+}
+
+connectionForm.addEventListener(
+  "submit",
+  async event => {
+    event.preventDefault();
+
+    const nodeA =
+      connectionNodeA.value;
+
+    const nodeB =
+      connectionNodeB.value;
+
+    const distance =
+      Number(
+        connectionDistance.value
+      );
+
+    connectionFormError.classList.add(
+      "hidden"
+    );
+
+    if (nodeA === nodeB) {
+      connectionFormError.textContent =
+        "Selecione dois sensores diferentes.";
+
+      connectionFormError.classList.remove(
+        "hidden"
+      );
+
+      return;
+    }
+
+    if (
+      !Number.isFinite(distance) ||
+      distance <= 0
+    ) {
+      connectionFormError.textContent =
+        "Informe uma distância maior que zero.";
+
+      connectionFormError.classList.remove(
+        "hidden"
+      );
+
+      return;
+    }
+
+    saveConnectionButton.disabled =
+      true;
+
+    saveConnectionButton.textContent =
+      "Salvando...";
+
+    try {
+      const response =
+        await fetch(
+          "/api/topology",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              nodeA,
+              nodeB,
+              distance
+            })
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if (!response.ok) {
+        connectionFormError.textContent =
+          result.error ??
+          "Não foi possível criar a conexão.";
+
+        connectionFormError.classList.remove(
+          "hidden"
+        );
+
+        return;
+      }
+
+      hideConnectionModal();
+
+      showToast(
+        `${nodeA} conectado a ${nodeB}.`
+      );
+
+      await loadTopology();
+    } catch {
+      connectionFormError.textContent =
+        "Não foi possível conectar ao sistema.";
+
+      connectionFormError.classList.remove(
+        "hidden"
+      );
+    } finally {
+      saveConnectionButton.disabled =
+        false;
+
+      saveConnectionButton.textContent =
+        "Salvar conexão";
+    }
+  }
+);
+
+async function removeConnection(id) {
+  const edge =
+    topology.find(
+      item => item.id === id
+    );
+
+  if (!edge) return;
+
+  const nodeA =
+    edge.nodeA?.code ??
+    "Sensor A";
+
+  const nodeB =
+    edge.nodeB?.code ??
+    "Sensor B";
+
+  const confirmed =
+    window.confirm(
+      `Remover a conexão ${nodeA} ↔ ${nodeB}?`
+    );
+
+  if (!confirmed) return;
+
+  try {
+    const response =
+      await fetch(
+        `/api/topology/${id}`,
+        {
+          method: "DELETE"
+        }
+      );
+
+    if (!response.ok) {
+      let message =
+        "Não foi possível remover a conexão.";
+
+      try {
+        const result =
+          await response.json();
+
+        message =
+          result.error ??
+          message;
+      } catch {
+      }
+
+      throw new Error(message);
+    }
+
+    showToast(
+      `Conexão ${nodeA} ↔ ${nodeB} removida.`
+    );
+
+    await loadTopology();
+  } catch (error) {
+    showToast(
+      error.message ??
+      "Não foi possível remover a conexão."
+    );
+  }
+}
+
+function showToast(message) {
+  toast.textContent =
+    message;
+
+  toast.classList.add(
+    "show"
+  );
+
+  setTimeout(() => {
+    toast.classList.remove(
+      "show"
+    );
+  }, 3000);
 }
 
 function escapeHtml(value) {
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
@@ -513,8 +1124,38 @@ refreshTopologyButton.addEventListener(
   loadTopology
 );
 
+newConnectionButton.addEventListener(
+  "click",
+  openConnectionModal
+);
+
+closeConnectionModal.addEventListener(
+  "click",
+  hideConnectionModal
+);
+
+cancelConnectionButton.addEventListener(
+  "click",
+  hideConnectionModal
+);
+
+connectionModalOverlay.addEventListener(
+  "click",
+  hideConnectionModal
+);
+
+document.addEventListener(
+  "keydown",
+  event => {
+    if (event.key === "Escape") {
+      hideConnectionModal();
+    }
+  }
+);
+
 loadTopology();
 
-setInterval(() => {
-  loadTopology();
-}, 10000);
+setInterval(
+  loadTopology,
+  10000
+);

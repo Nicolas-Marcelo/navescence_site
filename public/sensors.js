@@ -1,6 +1,7 @@
 let sensors = [];
 let environments = [];
 let topology = [];
+let dashboard = null;
 let editingSensor = null;
 
 const registeredSensorsBody = document.getElementById("registeredSensorsBody");
@@ -21,7 +22,6 @@ const cancelSensorButton = document.getElementById("cancelSensorButton");
 const sensorModalTitle = document.getElementById("sensorModalTitle");
 const sensorForm = document.getElementById("sensorForm");
 const sensorFormError = document.getElementById("sensorFormError");
-const sensorNeighbors = document.getElementById("sensorNeighbors");
 
 const sensorId = document.getElementById("sensorId");
 const sensorCode = document.getElementById("sensorCode");
@@ -39,10 +39,16 @@ const toast = document.getElementById("toast");
 
 async function loadData() {
   try {
-    const [sensorsResponse, environmentsResponse, topologyResponse] = await Promise.all([
+    const [
+      sensorsResponse,
+      environmentsResponse,
+      topologyResponse,
+      dashboardResponse
+    ] = await Promise.all([
       fetch("/api/sensors"),
       fetch("/api/environments"),
-      fetch("/api/topology")
+      fetch("/api/topology"),
+      fetch("/api/dashboard")
     ]);
 
     if (!sensorsResponse.ok) throw new Error("Não foi possível carregar os sensores.");
@@ -53,17 +59,34 @@ async function loadData() {
     environments = await environmentsResponse.json();
     topology = await topologyResponse.json();
 
+    dashboard = dashboardResponse.ok
+      ? await dashboardResponse.json()
+      : null;
+
     renderEnvironmentOptions();
     renderSummary();
     renderSensors();
   } catch (error) {
     registeredSensorsBody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-table">
+        <td colspan="10" class="empty-table">
           ${escapeHtml(error.message)}
         </td>
       </tr>
     `;
+  }
+}
+
+async function refreshPresence() {
+  try {
+    const response = await fetch("/api/dashboard");
+
+    if (!response.ok) return;
+
+    dashboard = await response.json();
+
+    renderSensors();
+  } catch {
   }
 }
 
@@ -94,9 +117,7 @@ function renderEnvironmentOptions(selectedId = null) {
     option.value = environment.id;
     option.textContent = environment.name;
 
-    if (Number(selectedId) === environment.id) {
-      option.selected = true;
-    }
+    if (Number(selectedId) === environment.id) option.selected = true;
 
     sensorEnvironment.appendChild(option);
   }
@@ -106,14 +127,21 @@ function getNeighborCodes(code) {
   const neighbors = [];
 
   for (const edge of topology) {
-    if (edge.nodeA?.code === code) {
-      neighbors.push(edge.nodeB.code);
-    } else if (edge.nodeB?.code === code) {
-      neighbors.push(edge.nodeA.code);
-    }
+    if (edge.nodeA?.code === code) neighbors.push(edge.nodeB.code);
+    else if (edge.nodeB?.code === code) neighbors.push(edge.nodeA.code);
   }
 
-  return neighbors;
+  return neighbors.sort((a, b) => {
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
+}
+
+function getPresence(sensor) {
+  if (!sensor.active || sensor.maintenance) {
+    return "NOT_MONITORED";
+  }
+
+  return dashboard?.nodes?.[sensor.code]?.presence ?? "UNKNOWN";
 }
 
 function renderSensors() {
@@ -125,6 +153,7 @@ function renderSensors() {
   if (query) {
     filtered = filtered.filter(sensor => {
       const neighbors = getNeighborCodes(sensor.code).join(" ");
+      const presence = formatPresence(getPresence(sensor)).text;
 
       const text = `
         ${sensor.code}
@@ -134,6 +163,7 @@ function renderSensors() {
         ${sensor.environment?.code ?? ""}
         ${sensor.location ?? ""}
         ${neighbors}
+        ${presence}
       `.toLowerCase();
 
       return text.includes(query);
@@ -141,9 +171,7 @@ function renderSensors() {
   }
 
   if (status === "ACTIVE") {
-    filtered = filtered.filter(sensor => {
-      return sensor.active && !sensor.maintenance;
-    });
+    filtered = filtered.filter(sensor => sensor.active && !sensor.maintenance);
   }
 
   if (status === "MAINTENANCE") {
@@ -159,7 +187,7 @@ function renderSensors() {
   if (filtered.length === 0) {
     registeredSensorsBody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-table">
+        <td colspan="10" class="empty-table">
           Nenhum sensor encontrado.
         </td>
       </tr>
@@ -167,6 +195,10 @@ function renderSensors() {
 
     return;
   }
+
+  filtered.sort((a, b) => {
+    return a.code.localeCompare(b.code, undefined, { numeric: true });
+  });
 
   for (const sensor of filtered) {
     registeredSensorsBody.appendChild(createSensorRow(sensor));
@@ -176,7 +208,8 @@ function renderSensors() {
 function createSensorRow(sensor) {
   const row = document.createElement("tr");
 
-  const status = getSensorStatus(sensor);
+  const configuration = getSensorConfiguration(sensor);
+  const presence = formatPresence(getPresence(sensor));
 
   const position =
     sensor.x !== null &&
@@ -231,21 +264,25 @@ function createSensorRow(sensor) {
       ${
         neighbors.length
           ? neighbors
-              .map(code => {
-                return `
-                  <span class="neighbor-badge">
-                    ${escapeHtml(code)}
-                  </span>
-                `;
-              })
+              .map(code => `
+                <span class="neighbor-badge">
+                  ${escapeHtml(code)}
+                </span>
+              `)
               .join("")
           : "—"
       }
     </td>
 
     <td>
-      <span class="badge ${status.className}">
-        ${status.text}
+      <span class="badge ${configuration.className}">
+        ${configuration.text}
+      </span>
+    </td>
+
+    <td>
+      <span class="badge ${presence.className}">
+        ${presence.text}
       </span>
     </td>
 
@@ -254,7 +291,10 @@ function createSensorRow(sensor) {
     </td>
 
     <td>
-      <button class="table-action-button" type="button">
+      <button
+        class="table-action-button"
+        type="button"
+      >
         Editar
       </button>
     </td>
@@ -267,10 +307,10 @@ function createSensorRow(sensor) {
   return row;
 }
 
-function getSensorStatus(sensor) {
+function getSensorConfiguration(sensor) {
   if (!sensor.active) {
     return {
-      text: "Inativo",
+      text: "Desabilitado",
       className: "offline"
     };
   }
@@ -283,58 +323,37 @@ function getSensorStatus(sensor) {
   }
 
   return {
-    text: "Ativo",
+    text: "Habilitado",
     className: "online"
   };
 }
 
-function renderNeighborOptions(currentCode = null, selected = []) {
-  const available = sensors.filter(sensor => {
-    return sensor.code !== currentCode;
-  });
+function formatPresence(presence) {
+  switch (presence) {
+    case "ONLINE":
+      return {
+        text: "Online",
+        className: "online"
+      };
 
-  if (available.length === 0) {
-    sensorNeighbors.innerHTML = `
-      <span class="neighbors-empty">
-        Nenhum outro sensor cadastrado.
-      </span>
-    `;
+    case "OFFLINE":
+      return {
+        text: "Offline",
+        className: "offline"
+      };
 
-    return;
+    case "NOT_MONITORED":
+      return {
+        text: "Não monitorado",
+        className: "unknown"
+      };
+
+    default:
+      return {
+        text: "Desconhecido",
+        className: "unknown"
+      };
   }
-
-  sensorNeighbors.innerHTML = available
-    .map(sensor => {
-      return `
-        <label class="neighbor-option">
-          <input
-            type="checkbox"
-            name="sensorNeighbor"
-            value="${escapeHtml(sensor.code)}"
-            ${selected.includes(sensor.code) ? "checked" : ""}
-          >
-
-          <span>
-            <strong>
-              ${escapeHtml(sensor.code)}
-            </strong>
-
-            <small>
-              ${escapeHtml(sensor.name ?? "Sensor NAVESCENCE")}
-            </small>
-          </span>
-        </label>
-      `;
-    })
-    .join("");
-}
-
-function getSelectedNeighbors() {
-  return [
-    ...document.querySelectorAll(
-      'input[name="sensorNeighbor"]:checked'
-    )
-  ].map(input => input.value);
 }
 
 function openNewSensor() {
@@ -350,7 +369,6 @@ function openNewSensor() {
   sensorFormError.classList.add("hidden");
 
   renderEnvironmentOptions();
-  renderNeighborOptions();
 
   openModal();
 }
@@ -374,11 +392,6 @@ function openEditSensor(id) {
   sensorMaintenance.checked = sensor.maintenance;
 
   renderEnvironmentOptions(sensor.environmentId);
-
-  renderNeighborOptions(
-    sensor.code,
-    getNeighborCodes(sensor.code)
-  );
 
   sensorModalTitle.textContent = `Editar ${sensor.code}`;
   sensorFormError.classList.add("hidden");
@@ -416,8 +429,6 @@ sensorForm.addEventListener("submit", async event => {
     maintenance: sensorMaintenance.checked
   };
 
-  const neighbors = getSelectedNeighbors();
-
   const url = editingSensor
     ? `/api/sensors/${editingSensor.id}`
     : "/api/sensors";
@@ -446,31 +457,6 @@ sensorForm.addEventListener("submit", async event => {
       sensorFormError.textContent =
         result.error ??
         "Não foi possível salvar o sensor.";
-
-      sensorFormError.classList.remove("hidden");
-
-      return;
-    }
-
-    const neighborsResponse = await fetch(
-      `/api/sensors/${result.id}/neighbors`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          neighbors
-        })
-      }
-    );
-
-    const neighborsResult = await neighborsResponse.json();
-
-    if (!neighborsResponse.ok) {
-      sensorFormError.textContent =
-        neighborsResult.error ??
-        "O sensor foi salvo, mas não foi possível atualizar os vizinhos.";
 
       sensorFormError.classList.remove("hidden");
 
@@ -533,40 +519,18 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-newSensorButton.addEventListener(
-  "click",
-  openNewSensor
-);
+newSensorButton.addEventListener("click", openNewSensor);
+closeSensorModal.addEventListener("click", hideModal);
+cancelSensorButton.addEventListener("click", hideModal);
+sensorModalOverlay.addEventListener("click", hideModal);
 
-closeSensorModal.addEventListener(
-  "click",
-  hideModal
-);
-
-cancelSensorButton.addEventListener(
-  "click",
-  hideModal
-);
-
-sensorModalOverlay.addEventListener(
-  "click",
-  hideModal
-);
-
-registeredSensorSearch.addEventListener(
-  "input",
-  renderSensors
-);
-
-registeredSensorStatus.addEventListener(
-  "change",
-  renderSensors
-);
+registeredSensorSearch.addEventListener("input", renderSensors);
+registeredSensorStatus.addEventListener("change", renderSensors);
 
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    hideModal();
-  }
+  if (event.key === "Escape") hideModal();
 });
 
 loadData();
+
+setInterval(refreshPresence, 5000);

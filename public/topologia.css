@@ -1,5 +1,12 @@
 .topology-page-heading {
+  align-items: center;
   margin-bottom: 18px;
+}
+
+.topology-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .topology-summary {
@@ -319,6 +326,77 @@
   font-size: 10px;
 }
 
+.topology-actions-cell {
+  width: 90px;
+  text-align: right;
+}
+
+.topology-remove-button {
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #b42318;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.topology-remove-button:hover {
+  background: #fef3f2;
+}
+
+.topology-distance-missing {
+  color: #98a2b3;
+  font-size: 11px;
+}
+
+.topology-modal {
+  width: min(520px, calc(100% - 32px));
+}
+
+.topology-modal .form-field select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #d7dde4;
+  border-radius: 8px;
+  background: #fff;
+  color: #344054;
+  outline: none;
+  font: inherit;
+}
+
+.topology-modal .form-field select:focus {
+  border-color: #66788a;
+  box-shadow: 0 0 0 3px rgba(102, 120, 138, .1);
+}
+
+.distance-input {
+  position: relative;
+}
+
+.distance-input input {
+  padding-right: 70px;
+}
+
+.distance-input span {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: #98a2b3;
+  font-size: 12px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.topology-field-hint {
+  color: #98a2b3;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .hidden {
   display: none !important;
 }
@@ -334,6 +412,20 @@
 }
 
 @media (max-width: 700px) {
+  .topology-page-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .topology-heading-actions {
+    width: 100%;
+  }
+
+  .topology-heading-actions button {
+    flex: 1;
+  }
+
   .topology-summary {
     grid-template-columns: 1fr;
   }

@@ -33,13 +33,23 @@
               </p>
             </div>
 
-            <button
-              id="refreshTopologyButton"
-              class="secondary-button"
-              type="button"
-            >
-              Atualizar
-            </button>
+            <div class="topology-heading-actions">
+              <button
+                id="refreshTopologyButton"
+                class="secondary-button"
+                type="button"
+              >
+                Atualizar
+              </button>
+
+              <button
+                id="newConnectionButton"
+                class="primary-button"
+                type="button"
+              >
+                + Nova conexão
+              </button>
+            </div>
           </div>
 
           <div class="topology-summary">
@@ -174,7 +184,7 @@
                 </strong>
 
                 <span>
-                  Cadastre sensores e configure seus ambientes e vizinhos.
+                  Cadastre sensores e configure seus ambientes e conexões.
                 </span>
               </div>
             </div>
@@ -188,7 +198,7 @@
                 </h3>
 
                 <p>
-                  Relações de vizinhança registradas na infraestrutura
+                  Relações físicas registradas entre os nós da infraestrutura
                 </p>
               </div>
             </div>
@@ -203,13 +213,14 @@
                       <th>Distância</th>
                       <th>Ambiente A</th>
                       <th>Ambiente B</th>
+                      <th></th>
                     </tr>
                   </thead>
 
                   <tbody id="topologyEdgesBody">
                     <tr>
                       <td
-                        colspan="5"
+                        colspan="6"
                         class="loading-cell"
                       >
                         Carregando topologia...
@@ -224,6 +235,118 @@
       </main>
     </div>
   </div>
+
+  <div
+    id="connectionModalOverlay"
+    class="modal-overlay"
+  ></div>
+
+  <div
+    id="connectionModal"
+    class="sensor-modal topology-modal"
+  >
+    <div class="modal-header">
+      <div>
+        <span class="drawer-eyebrow">
+          Infraestrutura
+        </span>
+
+        <h2>
+          Nova conexão
+        </h2>
+      </div>
+
+      <button
+        id="closeConnectionModal"
+        class="drawer-close"
+        type="button"
+      >
+        ×
+      </button>
+    </div>
+
+    <form
+      id="connectionForm"
+      class="sensor-form"
+    >
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="connectionNodeA">
+            Sensor A *
+          </label>
+
+          <select
+            id="connectionNodeA"
+            required
+          ></select>
+        </div>
+
+        <div class="form-field">
+          <label for="connectionNodeB">
+            Sensor B *
+          </label>
+
+          <select
+            id="connectionNodeB"
+            required
+          ></select>
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="connectionDistance">
+            Distância entre os sensores *
+          </label>
+
+          <div class="distance-input">
+            <input
+              id="connectionDistance"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="Ex.: 5.00"
+              required
+            >
+
+            <span>
+              metros
+            </span>
+          </div>
+
+          <small class="topology-field-hint">
+            Informe a distância física percorrida entre os dois nós.
+          </small>
+        </div>
+      </div>
+
+      <div
+        id="connectionFormError"
+        class="form-error hidden"
+      ></div>
+
+      <div class="modal-actions">
+        <button
+          id="cancelConnectionButton"
+          class="secondary-button"
+          type="button"
+        >
+          Cancelar
+        </button>
+
+        <button
+          id="saveConnectionButton"
+          class="primary-button"
+          type="submit"
+        >
+          Salvar conexão
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div
+    id="toast"
+    class="toast"
+  ></div>
 
   <script src="/sidebar.js"></script>
   <script src="/topologia.js"></script>

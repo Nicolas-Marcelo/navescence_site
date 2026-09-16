@@ -1,14 +1,28 @@
-import { config } from "../config/env.js";
+import {
+  config
+} from "../config/env.js";
 
-import type { NodeId } from "../config/nodes.js";
+import type {
+  NodeId
+} from "../config/nodes.js";
 
-import { Presence } from "../models/node.js";
+import {
+  Presence,
+  NodeStatus
+} from "../models/node.js";
 
-import type { ScanReading } from "../models/scan.js";
+import type {
+  ScanReading
+} from "../models/scan.js";
 
-import type { NodeStore } from "../states/nodeStore.js";
+import type {
+  NodeStore
+} from "../states/nodeStore.js";
 
-import { sleep, nowPtBr } from "../utils/time.js";
+import {
+  sleep,
+  nowPtBr
+} from "../utils/time.js";
 
 import type {
   VerificationMode,
@@ -26,8 +40,13 @@ interface SaveVerificationData {
 
 interface CoordinatorOptions {
   store: NodeStore;
-  sendCheck: (nodeId: NodeId) => void;
-  sendDashboard: () => void;
+  sendCheck: (
+    nodeId: NodeId
+  ) => void;
+
+  sendDashboard:
+    () => void;
+
   saveVerification: (
     data: SaveVerificationData
   ) => Promise<unknown>;
@@ -68,16 +87,23 @@ export function createCoordinator(
   } = options;
 
   const pendingChecks =
-    new Map<NodeId, () => void>();
+    new Map<
+      NodeId,
+      () => void
+    >();
 
-  let mode: CoordinatorMode =
+  let mode:
+    CoordinatorMode =
     "IDLE";
 
-  let currentNode: NodeId | null =
+  let currentNode:
+    NodeId |
+    null =
     null;
 
   let nextAutomaticAt:
-    number | null =
+    number |
+    null =
     Date.now();
 
   function createCoordinatorError(
@@ -85,20 +111,29 @@ export function createCoordinator(
     message: string
   ) {
     const error =
-      new Error(message) as Error & {
+      new Error(
+        message
+      ) as Error & {
         code: string;
       };
 
-    error.code = code;
+    error.code =
+      code;
 
     return error;
   }
 
-  function getStatus(): CoordinatorStatus {
+  function getStatus():
+    CoordinatorStatus {
     return {
       mode,
-      busy: mode !== "IDLE",
+
+      busy:
+        mode !==
+        "IDLE",
+
       currentNode,
+
       nextAutomaticAt:
         nextAutomaticAt
           ? new Date(
@@ -112,40 +147,86 @@ export function createCoordinator(
     nodeId: NodeId
   ) {
     const finish =
-      pendingChecks.get(nodeId);
+      pendingChecks.get(
+        nodeId
+      );
 
     if (!finish) return;
 
     finish();
 
-    pendingChecks.delete(nodeId);
+    pendingChecks.delete(
+      nodeId
+    );
   }
 
   function waitForNode(
     nodeId: NodeId
   ): Promise<boolean> {
-    return new Promise(resolve => {
-      const timeout =
-        setTimeout(() => {
-          pendingChecks.delete(nodeId);
+    return new Promise(
+      resolve => {
+        const timeout =
+          setTimeout(
+            () => {
+              pendingChecks.delete(
+                nodeId
+              );
 
-          resolve(false);
-        }, config.coordinator.checkTimeout);
+              resolve(
+                false
+              );
+            },
 
-      pendingChecks.set(
+            config
+              .coordinator
+              .checkTimeout
+          );
+
+        pendingChecks.set(
+          nodeId,
+
+          () => {
+            clearTimeout(
+              timeout
+            );
+
+            resolve(
+              true
+            );
+          }
+        );
+      }
+    );
+  }
+
+  function resetNodeStatus(
+    nodeId: NodeId
+  ) {
+    if (
+      !store.has(
+        nodeId
+      )
+    ) {
+      return;
+    }
+
+    if (
+      store.get(
+        nodeId
+      ).status ===
+      NodeStatus.Checking
+    ) {
+      store.setStatus(
         nodeId,
-        () => {
-          clearTimeout(timeout);
-
-          resolve(true);
-        }
+        NodeStatus.Unknown
       );
-    });
+    }
   }
 
   function getVerificationMode():
     VerificationMode {
-    return mode === "MANUAL"
+    return mode ===
+      "MANUAL"
       ? "MANUAL"
       : "AUTOMATIC";
   }
@@ -157,17 +238,30 @@ export function createCoordinator(
     finishedAt: Date
   ) {
     const scans =
-      store.has(nodeId)
-        ? [...store.get(nodeId).scans]
+      store.has(
+        nodeId
+      )
+        ? [
+            ...store.get(
+              nodeId
+            ).scans
+          ]
         : [];
 
     try {
       await saveVerification({
-        nodeCode: nodeId,
-        mode: getVerificationMode(),
+        nodeCode:
+          nodeId,
+
+        mode:
+          getVerificationMode(),
+
         result,
+
         startedAt,
+
         finishedAt,
+
         scans
       });
 
@@ -192,7 +286,8 @@ export function createCoordinator(
       VerificationResult =
       "ERROR";
 
-    currentNode = nodeId;
+    currentNode =
+      nodeId;
 
     try {
       console.log();
@@ -201,12 +296,17 @@ export function createCoordinator(
         `--- Verificando ${nodeId} ---`
       );
 
-      if (!store.has(nodeId)) {
+      if (
+        !store.has(
+          nodeId
+        )
+      ) {
         console.log(
           `[ALERTA] ${nodeId} não está mais cadastrado.`
         );
 
-        result = "OFFLINE";
+        result =
+          "OFFLINE";
 
         return {
           nodeId,
@@ -215,14 +315,17 @@ export function createCoordinator(
       }
 
       if (
-        store.get(nodeId).presence !==
+        store.get(
+          nodeId
+        ).presence !==
         Presence.Online
       ) {
         console.log(
           `[ALERTA] ${nodeId} não está online.`
         );
 
-        result = "OFFLINE";
+        result =
+          "OFFLINE";
 
         return {
           nodeId,
@@ -230,14 +333,20 @@ export function createCoordinator(
         };
       }
 
-      store.clearScans(nodeId);
+      store.clearScans(
+        nodeId
+      );
 
       sendDashboard();
 
       const wait =
-        waitForNode(nodeId);
+        waitForNode(
+          nodeId
+        );
 
-      sendCheck(nodeId);
+      sendCheck(
+        nodeId
+      );
 
       console.log(
         `VERIFICAR enviado -> ${nodeId}`
@@ -251,7 +360,12 @@ export function createCoordinator(
           `[ALERTA] Timeout na verificação de ${nodeId}.`
         );
 
-        result = "TIMEOUT";
+        resetNodeStatus(
+          nodeId
+        );
+
+        result =
+          "TIMEOUT";
 
         return {
           nodeId,
@@ -263,11 +377,16 @@ export function createCoordinator(
         `[OK] ${nodeId} finalizou.`
       );
 
-      await sleep(500);
+      await sleep(
+        500
+      );
 
-      logNode(nodeId);
+      logNode(
+        nodeId
+      );
 
-      result = "FINISHED";
+      result =
+        "FINISHED";
 
       return {
         nodeId,
@@ -279,7 +398,12 @@ export function createCoordinator(
         error
       );
 
-      result = "ERROR";
+      resetNodeStatus(
+        nodeId
+      );
+
+      result =
+        "ERROR";
 
       return {
         nodeId,
@@ -296,7 +420,8 @@ export function createCoordinator(
         finishedAt
       );
 
-      currentNode = null;
+      currentNode =
+        null;
 
       sendDashboard();
     }
@@ -311,26 +436,38 @@ export function createCoordinator(
 
     for (
       let index = 0;
-      index < nodeIds.length;
+      index <
+      nodeIds.length;
       index++
     ) {
       const nodeId =
-        nodeIds[index];
+        nodeIds[
+          index
+        ];
 
-      if (!store.has(nodeId)) {
+      if (
+        !store.has(
+          nodeId
+        )
+      ) {
         continue;
       }
 
       results.push(
-        await checkNode(nodeId)
+        await checkNode(
+          nodeId
+        )
       );
 
       if (
         index <
-        nodeIds.length - 1
+        nodeIds.length -
+          1
       ) {
         await sleep(
-          config.coordinator.nodeDelay
+          config
+            .coordinator
+            .nodeDelay
         );
       }
     }
@@ -342,7 +479,9 @@ export function createCoordinator(
     nodeId: NodeId
   ) {
     const state =
-      store.get(nodeId);
+      store.get(
+        nodeId
+      );
 
     console.log();
 
@@ -395,11 +534,15 @@ export function createCoordinator(
       of store.getIds()
     ) {
       const state =
-        store.get(nodeId);
+        store.get(
+          nodeId
+        );
 
       console.log();
 
-      console.log(nodeId);
+      console.log(
+        nodeId
+      );
 
       console.log(
         `  Presença: ${state.presence}`
@@ -419,13 +562,20 @@ export function createCoordinator(
     target: string
   ): Promise<ManualVerificationResult> {
     const normalizedTarget =
-      target.trim().toUpperCase() ||
+      target
+        .trim()
+        .toUpperCase() ||
       "ALL";
 
-    if (mode !== "IDLE") {
+    if (
+      mode !==
+      "IDLE"
+    ) {
       throw createCoordinatorError(
         "BUSY",
-        mode === "MANUAL"
+
+        mode ===
+          "MANUAL"
           ? "Já existe uma verificação manual em andamento."
           : "O rodízio automático está em execução. Aguarde a rodada terminar."
       );
@@ -435,13 +585,15 @@ export function createCoordinator(
       NodeId[];
 
     if (
-      normalizedTarget === "ALL"
+      normalizedTarget ===
+      "ALL"
     ) {
       nodeIds =
         store.getIds();
 
       if (
-        nodeIds.length === 0
+        nodeIds.length ===
+        0
       ) {
         throw createCoordinatorError(
           "NO_NODES",
@@ -475,7 +627,8 @@ export function createCoordinator(
       null;
 
     const startedAt =
-      new Date().toISOString();
+      new Date()
+        .toISOString();
 
     console.log();
 
@@ -502,7 +655,8 @@ export function createCoordinator(
         startedAt,
 
         finishedAt:
-          new Date().toISOString(),
+          new Date()
+            .toISOString(),
 
         results
       };
@@ -515,7 +669,9 @@ export function createCoordinator(
 
       nextAutomaticAt =
         Date.now() +
-        config.coordinator.roundDelay;
+        config
+          .coordinator
+          .roundDelay;
 
       console.log();
 
@@ -546,16 +702,21 @@ export function createCoordinator(
 
     while (true) {
       if (
-        mode !== "IDLE"
+        mode !==
+        "IDLE"
       ) {
-        await sleep(250);
+        await sleep(
+          250
+        );
 
         continue;
       }
 
       const remaining =
-        (nextAutomaticAt ??
-          Date.now()) -
+        (
+          nextAutomaticAt ??
+          Date.now()
+        ) -
         Date.now();
 
       if (
@@ -585,7 +746,8 @@ export function createCoordinator(
 
       try {
         if (
-          nodeIds.length === 0
+          nodeIds.length ===
+          0
         ) {
           console.log(
             "Nenhum sensor ativo cadastrado."
@@ -610,7 +772,7 @@ export function createCoordinator(
         logRound(
           round,
           Date.now() -
-            startTime
+          startTime
         );
 
         round++;
@@ -623,7 +785,9 @@ export function createCoordinator(
 
         nextAutomaticAt =
           Date.now() +
-          config.coordinator.roundDelay;
+          config
+            .coordinator
+            .roundDelay;
 
         console.log(
           `Próxima rodada em ${config.coordinator.roundDelay / 1000} segundos...`

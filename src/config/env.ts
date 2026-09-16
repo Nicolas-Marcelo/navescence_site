@@ -4,9 +4,7 @@ function readNumber(
   value: string | undefined,
   fallback: number
 ): number {
-
-  const number =
-    Number(value);
+  const number = Number(value);
 
   return Number.isFinite(number)
     ? number
@@ -14,7 +12,6 @@ function readNumber(
 }
 
 export const config = {
-
   mqtt: {
     host:
       process.env.MQTT_HOST ??
@@ -45,12 +42,12 @@ export const config = {
 
   coordinator: {
     checkTimeout:
-      25_000,
+      10_000,
 
     nodeDelay:
-      2_000,
+      1_000,
 
     roundDelay:
-      60_000
+      90_000
   }
 };

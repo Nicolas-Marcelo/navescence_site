@@ -14,6 +14,7 @@ import { createAlertService } from "./services/alertService.js";
 import { createCoordinator } from "./services/coordinator.js";
 import { getDashboard } from "./services/dashboard.js";
 import { createEnvironmentService } from "./services/environmentService.js";
+import { createNavigationService } from "./services/navigationService.js";
 import { createNodeService } from "./services/nodeService.js";
 import { createPoiService } from "./services/poiService.js";
 import { createTopologyService } from "./services/topologyService.js";
@@ -50,6 +51,12 @@ const environmentService = createEnvironmentService(
 const poiService = createPoiService(
   poiRepository,
   nodeRepository
+);
+
+const navigationService = createNavigationService(
+  nodeRepository,
+  edgeRepository,
+  poiRepository
 );
 
 const verificationService = createVerificationService(
@@ -132,6 +139,7 @@ const web = createWebServer(
   topologyService,
   environmentService,
   poiService,
+  navigationService,
   verificationService,
   alertService,
   {

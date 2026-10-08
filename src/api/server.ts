@@ -8,12 +8,14 @@ import type { TopologyStore } from "../states/topologyStore.js";
 
 import type { AlertService } from "../services/alertService.js";
 import type { EnvironmentService } from "../services/environmentService.js";
+import type { NavigationService } from "../services/navigationService.js";
 import type { NodeService } from "../services/nodeService.js";
 import type { PoiService } from "../services/poiService.js";
 import type { TopologyService } from "../services/topologyService.js";
 import type { VerificationService } from "../services/verificationService.js";
 
 import { createSocket } from "../socket/socket.js";
+import { registerNavigationRoutes } from "./navigationRoutes.js";
 import { registerRoutes, type VerificationControl } from "./routes.js";
 
 export function createWebServer(
@@ -23,6 +25,7 @@ export function createWebServer(
   topologyService: TopologyService,
   environmentService: EnvironmentService,
   poiService: PoiService,
+  navigationService: NavigationService,
   verificationService: VerificationService,
   alertService: AlertService,
   verificationControl: VerificationControl,
@@ -48,6 +51,11 @@ export function createWebServer(
     syncInfrastructure
   );
 
+  registerNavigationRoutes(
+    app,
+    navigationService
+  );
+
   const socket = createSocket(
     httpServer,
     store,
@@ -70,6 +78,7 @@ export function createWebServer(
         console.log(`API Ambientes: http://localhost:${config.web.port}/api/environments`);
         console.log(`API POIs: http://localhost:${config.web.port}/api/pois`);
         console.log(`API Topologia: http://localhost:${config.web.port}/api/topology`);
+        console.log(`API Navegação: http://localhost:${config.web.port}/api/navigation/config`);
         console.log(`API Verificações: http://localhost:${config.web.port}/api/verifications/status`);
         console.log(`API Histórico: http://localhost:${config.web.port}/api/verifications/history`);
         console.log(`API Alertas: http://localhost:${config.web.port}/api/alerts`);

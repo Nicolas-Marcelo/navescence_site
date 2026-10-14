@@ -1,6 +1,12 @@
-import type { EnvironmentData, EnvironmentRepository } from "../repositories/environmentRepository.js";
+import type {
+  EnvironmentData,
+  EnvironmentRepository
+} from "../repositories/environmentRepository.js";
 
-export function createEnvironmentService(repository: EnvironmentRepository) {
+export function createEnvironmentService(
+  repository: EnvironmentRepository,
+  onNavigationUpdate: () => void = () => {}
+) {
   function list() {
     return repository.findAll();
   }
@@ -9,44 +15,123 @@ export function createEnvironmentService(repository: EnvironmentRepository) {
     return repository.findById(id);
   }
 
-  function create(data: EnvironmentData) {
-    const code = data.code?.trim().toUpperCase();
-    const name = data.name?.trim();
+  async function create(
+    data: EnvironmentData
+  ) {
+    const code =
+      data.code
+        ?.trim()
+        .toUpperCase();
 
-    if (!code) throw new Error("O código do ambiente é obrigatório.");
-    if (!name) throw new Error("O nome do ambiente é obrigatório.");
+    const name =
+      data.name?.trim();
 
-    return repository.create({
-      code,
-      name,
-      type: data.type?.trim().toUpperCase() || null,
-      floor: data.floor?.trim() || "Térreo",
-      description: data.description?.trim() || null
-    });
-  }
+    if (!code) {
+      throw new Error(
+        "O código do ambiente é obrigatório."
+      );
+    }
 
-  async function update(id: number, data: Partial<EnvironmentData>) {
-    const environment = await repository.findById(id);
-    if (!environment) return null;
+    if (!name) {
+      throw new Error(
+        "O nome do ambiente é obrigatório."
+      );
+    }
 
-    return repository.update(id, {
-      code: data.code === undefined ? undefined : data.code.trim().toUpperCase(),
-      name: data.name === undefined ? undefined : data.name.trim(),
-      type: data.type === undefined ? undefined : data.type?.trim().toUpperCase() || null,
-      floor: data.floor === undefined ? undefined : data.floor.trim(),
-      description: data.description === undefined ? undefined : data.description?.trim() || null
-    });
-  }
+    const environment =
+      await repository.create({
+        code,
+        name,
 
-  async function remove(id: number) {
-    const environment = await repository.findById(id);
-    if (!environment) return null;
+        type:
+          data.type
+            ?.trim()
+            .toUpperCase() || null,
 
-    await repository.remove(id);
+        floor:
+          data.floor?.trim() ||
+          "Térreo",
+
+        description:
+          data.description
+            ?.trim() || null
+      });
+
+    onNavigationUpdate();
+
     return environment;
   }
 
-  return { list, get, create, update, remove };
+  async function update(
+    id: number,
+    data: Partial<EnvironmentData>
+  ) {
+    const environment =
+      await repository.findById(id);
+
+    if (!environment) return null;
+
+    const updated =
+      await repository.update(id, {
+        code:
+          data.code === undefined
+            ? undefined
+            : data.code
+                .trim()
+                .toUpperCase(),
+
+        name:
+          data.name === undefined
+            ? undefined
+            : data.name.trim(),
+
+        type:
+          data.type === undefined
+            ? undefined
+            : data.type
+                ?.trim()
+                .toUpperCase() || null,
+
+        floor:
+          data.floor === undefined
+            ? undefined
+            : data.floor.trim(),
+
+        description:
+          data.description === undefined
+            ? undefined
+            : data.description
+                ?.trim() || null
+      });
+
+    onNavigationUpdate();
+
+    return updated;
+  }
+
+  async function remove(id: number) {
+    const environment =
+      await repository.findById(id);
+
+    if (!environment) return null;
+
+    await repository.remove(id);
+
+    onNavigationUpdate();
+
+    return environment;
+  }
+
+  return {
+    list,
+    get,
+    create,
+    update,
+    remove
+  };
 }
 
-export type EnvironmentService = ReturnType<typeof createEnvironmentService>;
+export type EnvironmentService =
+  ReturnType<
+    typeof createEnvironmentService
+  >;

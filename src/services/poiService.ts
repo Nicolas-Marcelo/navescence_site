@@ -1,5 +1,11 @@
-import type { NodeRepository } from "../repositories/nodeRepository.js";
-import type { PoiData, PoiRepository } from "../repositories/poiRepository.js";
+import type {
+  NodeRepository
+} from "../repositories/nodeRepository.js";
+
+import type {
+  PoiData,
+  PoiRepository
+} from "../repositories/poiRepository.js";
 
 export interface PoiInput {
   code?: unknown;
@@ -12,7 +18,8 @@ export interface PoiInput {
 
 export function createPoiService(
   repository: PoiRepository,
-  nodeRepository: NodeRepository
+  nodeRepository: NodeRepository,
+  onNavigationUpdate: () => void = () => {}
 ) {
   function normalizeString(value: unknown) {
     return typeof value === "string"
@@ -20,21 +27,34 @@ export function createPoiService(
       : "";
   }
 
-  function normalizeOptionalString(value: unknown) {
-    const normalized = normalizeString(value);
+  function normalizeOptionalString(
+    value: unknown
+  ) {
+    const normalized =
+      normalizeString(value);
 
     return normalized || null;
   }
 
-  async function validateNode(nodeId: number) {
-    if (!Number.isInteger(nodeId) || nodeId <= 0) {
-      throw new Error("Sensor de referência inválido.");
+  async function validateNode(
+    nodeId: number
+  ) {
+    if (
+      !Number.isInteger(nodeId) ||
+      nodeId <= 0
+    ) {
+      throw new Error(
+        "Sensor de referência inválido."
+      );
     }
 
-    const node = await nodeRepository.findById(nodeId);
+    const node =
+      await nodeRepository.findById(nodeId);
 
     if (!node) {
-      throw new Error("Sensor de referência não encontrado.");
+      throw new Error(
+        "Sensor de referência não encontrado."
+      );
     }
 
     return node;
@@ -59,22 +79,43 @@ export function createPoiService(
   }
 
   async function create(input: PoiInput) {
-    const code = normalizeString(input.code).toUpperCase();
-    const name = normalizeString(input.name);
-    const type = normalizeString(input.type).toUpperCase();
-    const description = normalizeOptionalString(input.description);
-    const nodeId = Number(input.nodeId);
+    const code =
+      normalizeString(
+        input.code
+      ).toUpperCase();
+
+    const name =
+      normalizeString(input.name);
+
+    const type =
+      normalizeString(
+        input.type
+      ).toUpperCase();
+
+    const description =
+      normalizeOptionalString(
+        input.description
+      );
+
+    const nodeId =
+      Number(input.nodeId);
 
     if (!code) {
-      throw new Error("Informe o código do ponto de interesse.");
+      throw new Error(
+        "Informe o código do ponto de interesse."
+      );
     }
 
     if (!name) {
-      throw new Error("Informe o nome do ponto de interesse.");
+      throw new Error(
+        "Informe o nome do ponto de interesse."
+      );
     }
 
     if (!type) {
-      throw new Error("Informe o tipo do ponto de interesse.");
+      throw new Error(
+        "Informe o tipo do ponto de interesse."
+      );
     }
 
     await validateNode(nodeId);
@@ -85,59 +126,89 @@ export function createPoiService(
       type,
       description,
       nodeId,
-      active: input.active === undefined
-        ? true
-        : Boolean(input.active)
+
+      active:
+        input.active === undefined
+          ? true
+          : Boolean(input.active)
     };
 
-    return repository.create(data);
+    const poi =
+      await repository.create(data);
+
+    onNavigationUpdate();
+
+    return poi;
   }
 
-  async function update(id: number, input: PoiInput) {
-    const existing = await repository.findById(id);
+  async function update(
+    id: number,
+    input: PoiInput
+  ) {
+    const existing =
+      await repository.findById(id);
 
-    if (!existing) {
-      return null;
-    }
+    if (!existing) return null;
 
     const data: Partial<PoiData> = {};
 
     if (input.code !== undefined) {
-      const code = normalizeString(input.code).toUpperCase();
+      const code =
+        normalizeString(
+          input.code
+        ).toUpperCase();
 
       if (!code) {
-        throw new Error("Informe o código do ponto de interesse.");
+        throw new Error(
+          "Informe o código do ponto de interesse."
+        );
       }
 
       data.code = code;
     }
 
     if (input.name !== undefined) {
-      const name = normalizeString(input.name);
+      const name =
+        normalizeString(
+          input.name
+        );
 
       if (!name) {
-        throw new Error("Informe o nome do ponto de interesse.");
+        throw new Error(
+          "Informe o nome do ponto de interesse."
+        );
       }
 
       data.name = name;
     }
 
     if (input.type !== undefined) {
-      const type = normalizeString(input.type).toUpperCase();
+      const type =
+        normalizeString(
+          input.type
+        ).toUpperCase();
 
       if (!type) {
-        throw new Error("Informe o tipo do ponto de interesse.");
+        throw new Error(
+          "Informe o tipo do ponto de interesse."
+        );
       }
 
       data.type = type;
     }
 
-    if (input.description !== undefined) {
-      data.description = normalizeOptionalString(input.description);
+    if (
+      input.description !== undefined
+    ) {
+      data.description =
+        normalizeOptionalString(
+          input.description
+        );
     }
 
     if (input.nodeId !== undefined) {
-      const nodeId = Number(input.nodeId);
+      const nodeId =
+        Number(input.nodeId);
 
       await validateNode(nodeId);
 
@@ -145,20 +216,33 @@ export function createPoiService(
     }
 
     if (input.active !== undefined) {
-      data.active = Boolean(input.active);
+      data.active =
+        Boolean(input.active);
     }
 
-    return repository.update(id, data);
+    const poi =
+      await repository.update(
+        id,
+        data
+      );
+
+    onNavigationUpdate();
+
+    return poi;
   }
 
   async function remove(id: number) {
-    const existing = await repository.findById(id);
+    const existing =
+      await repository.findById(id);
 
-    if (!existing) {
-      return null;
-    }
+    if (!existing) return null;
 
-    return repository.remove(id);
+    const poi =
+      await repository.remove(id);
+
+    onNavigationUpdate();
+
+    return poi;
   }
 
   return {
@@ -172,4 +256,5 @@ export function createPoiService(
   };
 }
 
-export type PoiService = ReturnType<typeof createPoiService>;
+export type PoiService =
+  ReturnType<typeof createPoiService>;

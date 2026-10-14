@@ -5,21 +5,60 @@ import type { NodeStore } from "../states/nodeStore.js";
 import type { TopologyStore } from "../states/topologyStore.js";
 import { getDashboard } from "../services/dashboard.js";
 
-export function createSocket(httpServer: HttpServer, store: NodeStore, topology: TopologyStore) {
+export interface NavigationConfigUpdate {
+  environmentId: number | null;
+  updatedAt: string;
+}
+
+export function createSocket(
+  httpServer: HttpServer,
+  store: NodeStore,
+  topology: TopologyStore
+) {
   const io = new SocketIOServer(httpServer);
 
   io.on("connection", socket => {
-    console.log(`[WEB] Interface conectada: ${socket.id}`);
-    socket.emit("dashboard:update", getDashboard(store, topology));
+    console.log(`[SOCKET] Cliente conectado: ${socket.id}`);
+
+    socket.emit(
+      "dashboard:update",
+      getDashboard(store, topology)
+    );
 
     socket.on("disconnect", () => {
-      console.log(`[WEB] Interface desconectada: ${socket.id}`);
+      console.log(
+        `[SOCKET] Cliente desconectado: ${socket.id}`
+      );
     });
   });
 
   function sendDashboard() {
-    io.emit("dashboard:update", getDashboard(store, topology));
+    io.emit(
+      "dashboard:update",
+      getDashboard(store, topology)
+    );
   }
 
-  return { sendDashboard };
+  function sendNavigationConfigUpdated(
+    environmentId: number | null = null
+  ) {
+    const update: NavigationConfigUpdate = {
+      environmentId,
+      updatedAt: new Date().toISOString()
+    };
+
+    io.emit(
+      "navigation_config_updated",
+      update
+    );
+
+    console.log(
+      `[SOCKET] Configuração de navegação atualizada | ambiente: ${environmentId ?? "todos"}`
+    );
+  }
+
+  return {
+    sendDashboard,
+    sendNavigationConfigUpdated
+  };
 }

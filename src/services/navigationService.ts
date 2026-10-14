@@ -4,6 +4,8 @@ import type { PoiRepository } from "../repositories/poiRepository.js";
 
 export interface NavigationNode {
   id: string;
+  mac: string | null;
+  advertisingName: string;
   x: number;
   y: number;
 }
@@ -36,7 +38,9 @@ export function createNavigationService(
   edgeRepository: EdgeRepository,
   poiRepository: PoiRepository
 ) {
-  async function getConfig(environmentId?: number): Promise<NavigationConfig> {
+  async function getConfig(
+    environmentId?: number
+  ): Promise<NavigationConfig> {
     const [allNodes, allEdges, allPois] = await Promise.all([
       nodeRepository.findOperational(),
       edgeRepository.findOperational(),
@@ -45,7 +49,9 @@ export function createNavigationService(
 
     const nodes = environmentId === undefined
       ? allNodes
-      : allNodes.filter(node => node.environmentId === environmentId);
+      : allNodes.filter(
+          node => node.environmentId === environmentId
+        );
 
     const invalidNodes = nodes.filter(node =>
       node.x === null ||
@@ -55,7 +61,9 @@ export function createNavigationService(
     );
 
     if (invalidNodes.length > 0) {
-      const codes = invalidNodes.map(node => node.code).join(", ");
+      const codes = invalidNodes
+        .map(node => node.code)
+        .join(", ");
 
       throw new Error(
         `Existem sensores operacionais sem coordenadas válidas: ${codes}.`
@@ -79,7 +87,10 @@ export function createNavigationService(
 
     if (invalidEdges.length > 0) {
       const connections = invalidEdges
-        .map(edge => `${edge.nodeA.code}-${edge.nodeB.code}`)
+        .map(
+          edge =>
+            `${edge.nodeA.code}-${edge.nodeB.code}`
+        )
         .join(", ");
 
       throw new Error(
@@ -98,6 +109,12 @@ export function createNavigationService(
 
       nodes: nodes.map(node => ({
         id: node.code,
+        mac: node.mac ?? null,
+
+        advertisingName:
+          node.name?.trim() ||
+          node.code,
+
         x: node.x as number,
         y: node.y as number
       })),

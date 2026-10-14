@@ -91,6 +91,8 @@ export function createWebServer(
 
   return {
     start,
-    sendDashboard: socket.sendDashboard
+    sendDashboard: socket.sendDashboard,
+    sendNavigationConfigUpdated:
+      socket.sendNavigationConfigUpdated
   };
 }

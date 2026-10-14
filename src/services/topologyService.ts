@@ -14,7 +14,8 @@ export interface EdgeData {
 
 export function createTopologyService(
   edgeRepository: EdgeRepository,
-  nodeRepository: NodeRepository
+  nodeRepository: NodeRepository,
+  onNavigationUpdate: () => void = () => {}
 ) {
   function list() {
     return edgeRepository.findAll();
@@ -30,9 +31,7 @@ export function createTopologyService(
     }));
   }
 
-  async function create(
-    data: EdgeData
-  ) {
+  async function create(data: EdgeData) {
     const codeA =
       data.nodeA
         ?.trim()
@@ -43,39 +42,45 @@ export function createTopologyService(
         ?.trim()
         .toUpperCase();
 
-    if (
-      !codeA ||
-      !codeB
-    ) {
+    if (!codeA || !codeB) {
       throw new Error(
         "Os dois sensores são obrigatórios."
       );
     }
 
-    if (
-      codeA === codeB
-    ) {
+    if (codeA === codeB) {
       throw new Error(
         "Um sensor não pode ser vizinho dele mesmo."
       );
     }
 
     const nodeA =
-      await nodeRepository.findByCode(
-        codeA
-      );
+      await nodeRepository.findByCode(codeA);
 
     const nodeB =
-      await nodeRepository.findByCode(
-        codeB
-      );
+      await nodeRepository.findByCode(codeB);
 
-    if (
-      !nodeA ||
-      !nodeB
-    ) {
+    if (!nodeA || !nodeB) {
       throw new Error(
         "Um dos sensores informados não existe."
+      );
+    }
+
+    if (
+      nodeA.environmentId === null ||
+      nodeB.environmentId === null
+    ) {
+      throw new Error(
+        "Os sensores precisam estar vinculados a um ambiente."
+      );
+    }
+
+    if (
+      nodeA.environmentId !==
+      nodeB.environmentId
+    ) {
+      throw new Error(
+        "Não é possível conectar sensores de ambientes diferentes."
       );
     }
 
@@ -92,14 +97,10 @@ export function createTopologyService(
     }
 
     const distance =
-      Number(
-        data.distance
-      );
+      Number(data.distance);
 
     if (
-      !Number.isFinite(
-        distance
-      ) ||
+      !Number.isFinite(distance) ||
       distance <= 0
     ) {
       throw new Error(
@@ -119,28 +120,27 @@ export function createTopologyService(
         nodeB.id
       );
 
-    return edgeRepository.create(
-      nodeAId,
-      nodeBId,
-      distance
-    );
-  }
-
-  async function remove(
-    id: number
-  ) {
     const edge =
-      await edgeRepository.findById(
-        id
+      await edgeRepository.create(
+        nodeAId,
+        nodeBId,
+        distance
       );
 
-    if (!edge) {
-      return null;
-    }
+    onNavigationUpdate();
 
-    await edgeRepository.remove(
-      id
-    );
+    return edge;
+  }
+
+  async function remove(id: number) {
+    const edge =
+      await edgeRepository.findById(id);
+
+    if (!edge) return null;
+
+    await edgeRepository.remove(id);
+
+    onNavigationUpdate();
 
     return edge;
   }
@@ -154,6 +154,4 @@ export function createTopologyService(
 }
 
 export type TopologyService =
-  ReturnType<
-    typeof createTopologyService
-  >;
+  ReturnType<typeof createTopologyService>;

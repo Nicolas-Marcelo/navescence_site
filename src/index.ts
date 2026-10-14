@@ -28,60 +28,104 @@ import { sleep } from "./utils/time.js";
 const store = createNodeStore();
 const topology = createTopologyStore();
 
-const nodeRepository = createNodeRepository();
-const edgeRepository = createEdgeRepository();
-const environmentRepository = createEnvironmentRepository();
-const poiRepository = createPoiRepository();
-const verificationRepository = createVerificationRepository();
-const alertRepository = createAlertRepository();
+let emitDashboard = () => {};
 
-const nodeService = createNodeService(
-  nodeRepository
-);
+let emitNavigationConfigUpdated = (
+  _environmentId: number | null = null
+) => {};
 
-const topologyService = createTopologyService(
-  edgeRepository,
-  nodeRepository
-);
+let sendCheck = (
+  _nodeId: NodeId
+) => {};
 
-const environmentService = createEnvironmentService(
-  environmentRepository
-);
+function notifyNavigationUpdate() {
+  emitNavigationConfigUpdated(null);
+}
 
-const poiService = createPoiService(
-  poiRepository,
-  nodeRepository
-);
+const nodeRepository =
+  createNodeRepository();
 
-const navigationService = createNavigationService(
-  nodeRepository,
-  edgeRepository,
-  poiRepository
-);
+const edgeRepository =
+  createEdgeRepository();
 
-const verificationService = createVerificationService(
-  verificationRepository,
-  nodeRepository
-);
+const environmentRepository =
+  createEnvironmentRepository();
 
-const alertService = createAlertService(
-  alertRepository,
-  nodeRepository
-);
+const poiRepository =
+  createPoiRepository();
 
-async function syncInfrastructure() {
-  const sensors = await nodeService.listOperational();
+const verificationRepository =
+  createVerificationRepository();
 
-  store.sync(
-    sensors.map(sensor => sensor.code)
+const alertRepository =
+  createAlertRepository();
+
+const nodeService =
+  createNodeService(
+    nodeRepository,
+    notifyNavigationUpdate
   );
 
-  const links = await topologyService.listOperationalLinks();
+const topologyService =
+  createTopologyService(
+    edgeRepository,
+    nodeRepository,
+    notifyNavigationUpdate
+  );
+
+const environmentService =
+  createEnvironmentService(
+    environmentRepository,
+    notifyNavigationUpdate
+  );
+
+const poiService =
+  createPoiService(
+    poiRepository,
+    nodeRepository,
+    notifyNavigationUpdate
+  );
+
+const navigationService =
+  createNavigationService(
+    nodeRepository,
+    edgeRepository,
+    poiRepository
+  );
+
+const verificationService =
+  createVerificationService(
+    verificationRepository,
+    nodeRepository
+  );
+
+const alertService =
+  createAlertService(
+    alertRepository,
+    nodeRepository
+  );
+
+async function syncInfrastructure() {
+  const sensors =
+    await nodeService.listOperational();
+
+  store.sync(
+    sensors.map(
+      sensor => sensor.code
+    )
+  );
+
+  const links =
+    await topologyService
+      .listOperationalLinks();
 
   topology.sync(links);
 
   console.log(
-    `Sensores ativos: ${store.getIds().join(", ") || "nenhum"}`
+    `Sensores ativos: ${
+      store.getIds().join(", ") ||
+      "nenhum"
+    }`
   );
 
   console.log(
@@ -89,14 +133,12 @@ async function syncInfrastructure() {
   );
 }
 
-let emitDashboard = () => {};
-let sendCheck = (_nodeId: NodeId) => {};
-
 function syncCurrentAlerts() {
-  const currentAlerts = getDashboard(
-    store,
-    topology
-  ).alerts;
+  const currentAlerts =
+    getDashboard(
+      store,
+      topology
+    ).alerts;
 
   alertService.syncDashboardAlerts(
     currentAlerts
@@ -108,63 +150,86 @@ function refreshDashboard() {
   syncCurrentAlerts();
 }
 
-const coordinator = createCoordinator({
-  store,
+const coordinator =
+  createCoordinator({
+    store,
 
-  sendCheck: nodeId => {
-    sendCheck(nodeId);
-  },
+    sendCheck: nodeId => {
+      sendCheck(nodeId);
+    },
 
-  sendDashboard: () => {
-    refreshDashboard();
-  },
+    sendDashboard: () => {
+      refreshDashboard();
+    },
 
-  saveVerification: async data => {
-    const run = await verificationService.save(data);
+    saveVerification:
+      async data => {
+        const run =
+          await verificationService.save(
+            data
+          );
 
-    await alertService.syncVerificationResult({
-      nodeCode: data.nodeCode,
-      result: data.result,
-      verificationRunId: run.id
-    });
+        await alertService
+          .syncVerificationResult({
+            nodeCode:
+              data.nodeCode,
 
-    return run;
-  }
-});
+            result:
+              data.result,
 
-const web = createWebServer(
-  store,
-  topology,
-  nodeService,
-  topologyService,
-  environmentService,
-  poiService,
-  navigationService,
-  verificationService,
-  alertService,
-  {
-    getStatus: coordinator.getStatus,
-    run: coordinator.runManual
-  },
-  async () => {
-    await syncInfrastructure();
-    refreshDashboard();
-  }
-);
+            verificationRunId:
+              run.id
+          });
 
-emitDashboard = web.sendDashboard;
+        return run;
+      }
+  });
 
-const mqtt = createMqttService({
-  store,
+const web =
+  createWebServer(
+    store,
+    topology,
+    nodeService,
+    topologyService,
+    environmentService,
+    poiService,
+    navigationService,
+    verificationService,
+    alertService,
+    {
+      getStatus:
+        coordinator.getStatus,
 
-  onUpdate: () => {
-    refreshDashboard();
-  },
+      run:
+        coordinator.runManual
+    },
 
-  onFinished: coordinator.finishNode
-});
+    async () => {
+      await syncInfrastructure();
+      refreshDashboard();
+    }
+  );
 
-sendCheck = mqtt.sendCheck;
+emitDashboard =
+  web.sendDashboard;
+
+emitNavigationConfigUpdated =
+  web.sendNavigationConfigUpdated;
+
+const mqtt =
+  createMqttService({
+    store,
+
+    onUpdate: () => {
+      refreshDashboard();
+    },
+
+    onFinished:
+      coordinator.finishNode
+  });
+
+sendCheck =
+  mqtt.sendCheck;
 
 async function start() {
   await syncInfrastructure();

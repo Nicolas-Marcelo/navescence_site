@@ -1,6 +1,12 @@
-import type { NodeRepository, NodeData } from "../repositories/nodeRepository.js";
+import type {
+  NodeRepository,
+  NodeData
+} from "../repositories/nodeRepository.js";
 
-export function createNodeService(repository: NodeRepository) {
+export function createNodeService(
+  repository: NodeRepository,
+  onNavigationUpdate: () => void = () => {}
+) {
   function list() {
     return repository.findAll();
   }
@@ -13,40 +19,93 @@ export function createNodeService(repository: NodeRepository) {
     return repository.findById(id);
   }
 
-  function create(data: NodeData) {
+  async function create(data: NodeData) {
     const code = data.code?.trim().toUpperCase();
-    if (!code) throw new Error("O código do sensor é obrigatório.");
 
-    return repository.create({
+    if (!code) {
+      throw new Error(
+        "O código do sensor é obrigatório."
+      );
+    }
+
+    const node = await repository.create({
       ...data,
       code,
       mac: data.mac?.trim().toUpperCase() || null,
       name: data.name?.trim() || null,
       location: data.location?.trim() || null
     });
+
+    onNavigationUpdate();
+
+    return node;
   }
 
-  async function update(id: number, data: Partial<NodeData>) {
+  async function update(
+    id: number,
+    data: Partial<NodeData>
+  ) {
     const node = await repository.findById(id);
+
     if (!node) return null;
 
-    return repository.update(id, {
+    const updated = await repository.update(id, {
       ...data,
-      code: data.code?.trim().toUpperCase(),
-      mac: data.mac === undefined ? undefined : data.mac?.trim().toUpperCase() || null,
-      name: data.name === undefined ? undefined : data.name?.trim() || null,
-      location: data.location === undefined ? undefined : data.location?.trim() || null
+
+      code:
+        data.code === undefined
+          ? undefined
+          : data.code.trim().toUpperCase(),
+
+      mac:
+        data.mac === undefined
+          ? undefined
+          : data.mac?.trim().toUpperCase() || null,
+
+      name:
+        data.name === undefined
+          ? undefined
+          : data.name?.trim() || null,
+
+      location:
+        data.location === undefined
+          ? undefined
+          : data.location?.trim() || null
     });
+
+    onNavigationUpdate();
+
+    return updated;
   }
 
-  async function setStatus(id: number, active?: boolean, maintenance?: boolean) {
+  async function setStatus(
+    id: number,
+    active?: boolean,
+    maintenance?: boolean
+  ) {
     const node = await repository.findById(id);
+
     if (!node) return null;
 
-    return repository.update(id, { active, maintenance });
+    const updated = await repository.update(id, {
+      active,
+      maintenance
+    });
+
+    onNavigationUpdate();
+
+    return updated;
   }
 
-  return { list, listOperational, get, create, update, setStatus };
+  return {
+    list,
+    listOperational,
+    get,
+    create,
+    update,
+    setStatus
+  };
 }
 
-export type NodeService = ReturnType<typeof createNodeService>;
+export type NodeService =
+  ReturnType<typeof createNodeService>;

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Verificação de e-mail - NAVESCENCE</title>
+
+  <link
+    rel="stylesheet"
+    href="/auth.css"
+  >
+</head>
+
+<body>
+  <main class="page">
+    <section
+      class="auth-card center"
+      aria-labelledby="titulo"
+    >
+      <div
+        class="logo"
+        aria-hidden="true"
+      >
+        N
+      </div>
+
+      <p class="eyebrow">
+        Verificação
+      </p>
+
+      <h1 id="titulo">
+        Confirmando seu e-mail
+      </h1>
+
+      <div
+        id="verification-status"
+        class="verification-status"
+        role="status"
+        aria-live="polite"
+      >
+        <div
+          class="spinner"
+          aria-hidden="true"
+        ></div>
+
+        <p>
+          Aguarde enquanto validamos sua conta.
+        </p>
+      </div>
+
+      <a
+        id="login-link"
+        href="/login.html"
+        class="button primary hidden"
+      >
+        Ir para o login
+      </a>
+    </section>
+  </main>
+
+  <script
+    type="module"
+    src="/js/auth.js"
+  ></script>
+</body>
+</html>

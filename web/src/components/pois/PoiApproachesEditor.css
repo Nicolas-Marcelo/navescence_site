@@ -1,0 +1,221 @@
+.poi-approaches {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.poi-approaches-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.poi-approaches-header h3 {
+  margin: 0 0 5px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.poi-approaches-header p {
+  margin: 0;
+  max-width: 620px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.poi-approaches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.poi-approach-card {
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.poi-approach-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.poi-approach-card-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.poi-approach-card-header strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.poi-approach-card-header span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.poi-approach-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.poi-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.poi-field > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.poi-field input,
+.poi-field select,
+.poi-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.poi-field input:focus,
+.poi-field select:focus,
+.poi-field textarea:focus {
+  border-color: #64748b;
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      100,
+      116,
+      139,
+      0.12
+    );
+}
+
+.poi-field textarea {
+  resize: vertical;
+}
+
+.poi-field small {
+  align-self: flex-end;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.poi-distance-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.poi-distance-input input {
+  flex: 1;
+}
+
+.poi-distance-input > span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.poi-approaches-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.poi-approaches-empty strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #334155;
+  font-size: 14px;
+}
+
+.poi-approaches-empty p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.poi-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 13px;
+  background: #ffffff;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.poi-secondary-button:hover {
+  background: #f8fafc;
+}
+
+.poi-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.poi-icon-button.danger {
+  color: #b91c1c;
+}
+
+.poi-icon-button.danger:hover {
+  background: #fee2e2;
+}
+
+@media (
+  max-width: 850px
+) {
+  .poi-approaches-header {
+    flex-direction: column;
+  }
+
+  .poi-approach-grid {
+    grid-template-columns: 1fr;
+  }
+}

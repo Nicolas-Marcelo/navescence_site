@@ -1,11 +1,23 @@
+import {
+  PoiApproachSide
+} from "../generated/prisma/client.js";
+
 import type {
   NodeRepository
 } from "../repositories/nodeRepository.js";
 
 import type {
+  PoiApproachData,
   PoiData,
   PoiRepository
 } from "../repositories/poiRepository.js";
+
+export interface PoiApproachInput {
+  fromNodeId?: unknown;
+  side?: unknown;
+  distanceMeters?: unknown;
+  instruction?: unknown;
+}
 
 export interface PoiInput {
   code?: unknown;
@@ -14,6 +26,7 @@ export interface PoiInput {
   description?: unknown;
   nodeId?: unknown;
   active?: unknown;
+  approaches?: unknown;
 }
 
 export function createPoiService(
@@ -21,7 +34,9 @@ export function createPoiService(
   nodeRepository: NodeRepository,
   onNavigationUpdate: () => void = () => {}
 ) {
-  function normalizeString(value: unknown) {
+  function normalizeString(
+    value: unknown
+  ) {
     return typeof value === "string"
       ? value.trim()
       : "";
@@ -31,16 +46,21 @@ export function createPoiService(
     value: unknown
   ) {
     const normalized =
-      normalizeString(value);
+      normalizeString(
+        value
+      );
 
-    return normalized || null;
+    return normalized ||
+      null;
   }
 
   async function validateNode(
     nodeId: number
   ) {
     if (
-      !Number.isInteger(nodeId) ||
+      !Number.isInteger(
+        nodeId
+      ) ||
       nodeId <= 0
     ) {
       throw new Error(
@@ -49,7 +69,9 @@ export function createPoiService(
     }
 
     const node =
-      await nodeRepository.findById(nodeId);
+      await nodeRepository.findById(
+        nodeId
+      );
 
     if (!node) {
       throw new Error(
@@ -60,6 +82,179 @@ export function createPoiService(
     return node;
   }
 
+  function normalizeSide(
+    value: unknown
+  ): PoiApproachSide {
+    const side =
+      normalizeString(
+        value
+      ).toUpperCase();
+
+    if (
+      side ===
+      PoiApproachSide.LEFT
+    ) {
+      return PoiApproachSide.LEFT;
+    }
+
+    if (
+      side ===
+      PoiApproachSide.RIGHT
+    ) {
+      return PoiApproachSide.RIGHT;
+    }
+
+    if (
+      side ===
+      PoiApproachSide.FRONT
+    ) {
+      return PoiApproachSide.FRONT;
+    }
+
+    throw new Error(
+      "O lado de aproximação deve ser LEFT, RIGHT ou FRONT."
+    );
+  }
+
+  function normalizeDistance(
+    value: unknown
+  ) {
+    if (
+      value === undefined ||
+      value === null ||
+      value === ""
+    ) {
+      return null;
+    }
+
+    const distance =
+      Number(
+        value
+      );
+
+    if (
+      !Number.isFinite(
+        distance
+      ) ||
+      distance <= 0
+    ) {
+      throw new Error(
+        "A distância até o destino deve ser maior que zero."
+      );
+    }
+
+    return distance;
+  }
+
+  async function normalizeApproaches(
+    value: unknown,
+    destinationNodeId: number
+  ): Promise<PoiApproachData[]> {
+    if (
+      value === undefined
+    ) {
+      return [];
+    }
+
+    if (
+      !Array.isArray(
+        value
+      )
+    ) {
+      throw new Error(
+        "As orientações de acesso devem ser uma lista."
+      );
+    }
+
+    const result:
+      PoiApproachData[] = [];
+
+    const usedNodes =
+      new Set<number>();
+
+    for (
+      const item
+      of value
+    ) {
+      if (
+        !item ||
+        typeof item !==
+          "object"
+      ) {
+        throw new Error(
+          "Orientação de acesso inválida."
+        );
+      }
+
+      const input =
+        item as PoiApproachInput;
+
+      const fromNodeId =
+        Number(
+          input.fromNodeId
+        );
+
+      if (
+        !Number.isInteger(
+          fromNodeId
+        ) ||
+        fromNodeId <= 0
+      ) {
+        throw new Error(
+          "Sensor de origem da aproximação inválido."
+        );
+      }
+
+      if (
+        fromNodeId ===
+        destinationNodeId
+      ) {
+        throw new Error(
+          "O sensor de origem da aproximação deve ser diferente do sensor do destino."
+        );
+      }
+
+      if (
+        usedNodes.has(
+          fromNodeId
+        )
+      ) {
+        throw new Error(
+          "Existe mais de uma orientação cadastrada para o mesmo sensor de origem."
+        );
+      }
+
+      await validateNode(
+        fromNodeId
+      );
+
+      usedNodes.add(
+        fromNodeId
+      );
+
+      result.push({
+        fromNodeId,
+
+        side:
+          normalizeSide(
+            input.side
+          ),
+
+        distanceMeters:
+          normalizeDistance(
+            input.distanceMeters
+          ),
+
+        instruction:
+          normalizeOptionalString(
+            input.instruction
+          )
+      });
+    }
+
+    return result;
+  }
+
   function list() {
     return repository.findAll();
   }
@@ -68,24 +263,36 @@ export function createPoiService(
     return repository.findOperational();
   }
 
-  function get(id: number) {
-    return repository.findById(id);
-  }
-
-  function getByCode(code: string) {
-    return repository.findByCode(
-      code.trim().toUpperCase()
+  function get(
+    id: number
+  ) {
+    return repository.findById(
+      id
     );
   }
 
-  async function create(input: PoiInput) {
+  function getByCode(
+    code: string
+  ) {
+    return repository.findByCode(
+      code
+        .trim()
+        .toUpperCase()
+    );
+  }
+
+  async function create(
+    input: PoiInput
+  ) {
     const code =
       normalizeString(
         input.code
       ).toUpperCase();
 
     const name =
-      normalizeString(input.name);
+      normalizeString(
+        input.name
+      );
 
     const type =
       normalizeString(
@@ -98,7 +305,9 @@ export function createPoiService(
       );
 
     const nodeId =
-      Number(input.nodeId);
+      Number(
+        input.nodeId
+      );
 
     if (!code) {
       throw new Error(
@@ -118,9 +327,18 @@ export function createPoiService(
       );
     }
 
-    await validateNode(nodeId);
+    await validateNode(
+      nodeId
+    );
 
-    const data: PoiData = {
+    const approaches =
+      await normalizeApproaches(
+        input.approaches,
+        nodeId
+      );
+
+    const data:
+      PoiData = {
       code,
       name,
       type,
@@ -128,13 +346,20 @@ export function createPoiService(
       nodeId,
 
       active:
-        input.active === undefined
+        input.active ===
+        undefined
           ? true
-          : Boolean(input.active)
+          : Boolean(
+              input.active
+            ),
+
+      approaches
     };
 
     const poi =
-      await repository.create(data);
+      await repository.create(
+        data
+      );
 
     onNavigationUpdate();
 
@@ -146,13 +371,21 @@ export function createPoiService(
     input: PoiInput
   ) {
     const existing =
-      await repository.findById(id);
+      await repository.findById(
+        id
+      );
 
-    if (!existing) return null;
+    if (!existing) {
+      return null;
+    }
 
-    const data: Partial<PoiData> = {};
+    const data:
+      Partial<PoiData> = {};
 
-    if (input.code !== undefined) {
+    if (
+      input.code !==
+      undefined
+    ) {
       const code =
         normalizeString(
           input.code
@@ -164,10 +397,14 @@ export function createPoiService(
         );
       }
 
-      data.code = code;
+      data.code =
+        code;
     }
 
-    if (input.name !== undefined) {
+    if (
+      input.name !==
+      undefined
+    ) {
       const name =
         normalizeString(
           input.name
@@ -179,10 +416,14 @@ export function createPoiService(
         );
       }
 
-      data.name = name;
+      data.name =
+        name;
     }
 
-    if (input.type !== undefined) {
+    if (
+      input.type !==
+      undefined
+    ) {
       const type =
         normalizeString(
           input.type
@@ -194,11 +435,13 @@ export function createPoiService(
         );
       }
 
-      data.type = type;
+      data.type =
+        type;
     }
 
     if (
-      input.description !== undefined
+      input.description !==
+      undefined
     ) {
       data.description =
         normalizeOptionalString(
@@ -206,18 +449,45 @@ export function createPoiService(
         );
     }
 
-    if (input.nodeId !== undefined) {
-      const nodeId =
-        Number(input.nodeId);
+    let destinationNodeId =
+      existing.nodeId;
 
-      await validateNode(nodeId);
+    if (
+      input.nodeId !==
+      undefined
+    ) {
+      destinationNodeId =
+        Number(
+          input.nodeId
+        );
 
-      data.nodeId = nodeId;
+      await validateNode(
+        destinationNodeId
+      );
+
+      data.nodeId =
+        destinationNodeId;
     }
 
-    if (input.active !== undefined) {
+    if (
+      input.active !==
+      undefined
+    ) {
       data.active =
-        Boolean(input.active);
+        Boolean(
+          input.active
+        );
+    }
+
+    if (
+      input.approaches !==
+      undefined
+    ) {
+      data.approaches =
+        await normalizeApproaches(
+          input.approaches,
+          destinationNodeId
+        );
     }
 
     const poi =
@@ -231,14 +501,22 @@ export function createPoiService(
     return poi;
   }
 
-  async function remove(id: number) {
+  async function remove(
+    id: number
+  ) {
     const existing =
-      await repository.findById(id);
+      await repository.findById(
+        id
+      );
 
-    if (!existing) return null;
+    if (!existing) {
+      return null;
+    }
 
     const poi =
-      await repository.remove(id);
+      await repository.remove(
+        id
+      );
 
     onNavigationUpdate();
 
@@ -257,4 +535,6 @@ export function createPoiService(
 }
 
 export type PoiService =
-  ReturnType<typeof createPoiService>;
+  ReturnType<
+    typeof createPoiService
+  >;

@@ -1,6 +1,14 @@
-import type { EdgeRepository } from "../repositories/edgeRepository.js";
-import type { NodeRepository } from "../repositories/nodeRepository.js";
-import type { PoiRepository } from "../repositories/poiRepository.js";
+import type {
+  EdgeRepository
+} from "../repositories/edgeRepository.js";
+
+import type {
+  NodeRepository
+} from "../repositories/nodeRepository.js";
+
+import type {
+  PoiRepository
+} from "../repositories/poiRepository.js";
 
 export interface NavigationNode {
   id: string;
@@ -16,21 +24,40 @@ export interface NavigationEdge {
   distance: number;
 }
 
+export interface NavigationPoiApproach {
+  fromNodeId: string;
+  side:
+    | "LEFT"
+    | "RIGHT"
+    | "FRONT";
+  distanceMeters: number | null;
+  instruction: string | null;
+}
+
 export interface NavigationPoi {
   code: string;
   name: string;
   type: string;
   description: string | null;
   nodeId: string;
+  approaches:
+    NavigationPoiApproach[];
 }
 
 export interface NavigationConfig {
   version: number;
   generatedAt: string;
-  environmentId: number | null;
-  nodes: NavigationNode[];
-  edges: NavigationEdge[];
-  pois: NavigationPoi[];
+  environmentId:
+    number | null;
+
+  nodes:
+    NavigationNode[];
+
+  edges:
+    NavigationEdge[];
+
+  pois:
+    NavigationPoi[];
 }
 
 export function createNavigationService(
@@ -41,97 +68,218 @@ export function createNavigationService(
   async function getConfig(
     environmentId?: number
   ): Promise<NavigationConfig> {
-    const [allNodes, allEdges, allPois] = await Promise.all([
-      nodeRepository.findOperational(),
-      edgeRepository.findOperational(),
-      poiRepository.findOperational()
-    ]);
+    const [
+      allNodes,
+      allEdges,
+      allPois
+    ] =
+      await Promise.all([
+        nodeRepository
+          .findOperational(),
 
-    const nodes = environmentId === undefined
-      ? allNodes
-      : allNodes.filter(
-          node => node.environmentId === environmentId
-        );
+        edgeRepository
+          .findOperational(),
 
-    const invalidNodes = nodes.filter(node =>
-      node.x === null ||
-      node.y === null ||
-      !Number.isFinite(node.x) ||
-      !Number.isFinite(node.y)
-    );
+        poiRepository
+          .findOperational()
+      ]);
 
-    if (invalidNodes.length > 0) {
-      const codes = invalidNodes
-        .map(node => node.code)
-        .join(", ");
+    const nodes =
+      environmentId ===
+      undefined
+        ? allNodes
+        : allNodes.filter(
+            node =>
+              node.environmentId ===
+              environmentId
+          );
+
+    const invalidNodes =
+      nodes.filter(
+        node =>
+          node.x === null ||
+          node.y === null ||
+          !Number.isFinite(
+            node.x
+          ) ||
+          !Number.isFinite(
+            node.y
+          )
+      );
+
+    if (
+      invalidNodes.length > 0
+    ) {
+      const codes =
+        invalidNodes
+          .map(
+            node =>
+              node.code
+          )
+          .join(
+            ", "
+          );
 
       throw new Error(
         `Existem sensores operacionais sem coordenadas válidas: ${codes}.`
       );
     }
 
-    const validNodeCodes = new Set(
-      nodes.map(node => node.code)
-    );
-
-    const edges = allEdges.filter(edge =>
-      validNodeCodes.has(edge.nodeA.code) &&
-      validNodeCodes.has(edge.nodeB.code)
-    );
-
-    const invalidEdges = edges.filter(edge =>
-      edge.distance === null ||
-      !Number.isFinite(edge.distance) ||
-      edge.distance <= 0
-    );
-
-    if (invalidEdges.length > 0) {
-      const connections = invalidEdges
-        .map(
-          edge =>
-            `${edge.nodeA.code}-${edge.nodeB.code}`
+    const validNodeCodes =
+      new Set(
+        nodes.map(
+          node =>
+            node.code
         )
-        .join(", ");
+      );
+
+    const edges =
+      allEdges.filter(
+        edge =>
+          validNodeCodes.has(
+            edge.nodeA.code
+          ) &&
+          validNodeCodes.has(
+            edge.nodeB.code
+          )
+      );
+
+    const invalidEdges =
+      edges.filter(
+        edge =>
+          edge.distance === null ||
+          !Number.isFinite(
+            edge.distance
+          ) ||
+          edge.distance <= 0
+      );
+
+    if (
+      invalidEdges.length > 0
+    ) {
+      const connections =
+        invalidEdges
+          .map(
+            edge =>
+              `${edge.nodeA.code}-${edge.nodeB.code}`
+          )
+          .join(
+            ", "
+          );
 
       throw new Error(
         `Existem conexões operacionais sem distância válida: ${connections}.`
       );
     }
 
-    const pois = allPois.filter(poi =>
-      validNodeCodes.has(poi.node.code)
-    );
+    const pois =
+      allPois.filter(
+        poi =>
+          validNodeCodes.has(
+            poi.node.code
+          )
+      );
 
     return {
-      version: 1,
-      generatedAt: new Date().toISOString(),
-      environmentId: environmentId ?? null,
+      version: 2,
 
-      nodes: nodes.map(node => ({
-        id: node.code,
-        mac: node.mac ?? null,
+      generatedAt:
+        new Date()
+          .toISOString(),
 
-        advertisingName:
-          node.name?.trim() ||
-          node.code,
+      environmentId:
+        environmentId ??
+        null,
 
-        x: node.x as number,
-        y: node.y as number
-      })),
+      nodes:
+        nodes.map(
+          node => ({
+            id:
+              node.code,
 
-      edges: edges.map(edge => ({
-        origin: edge.nodeA.code,
-        destination: edge.nodeB.code,
-        distance: edge.distance as number
-      })),
+            mac:
+              node.mac ??
+              null,
 
-      pois: pois.map(poi => ({
-        code: poi.code,
-        name: poi.name,
-        type: poi.type,
-        description: poi.description ?? null,
-        nodeId: poi.node.code
-      }))
+            advertisingName:
+              node.name
+                ?.trim() ||
+              node.code,
+
+            x:
+              node.x as number,
+
+            y:
+              node.y as number
+          })
+        ),
+
+      edges:
+        edges.map(
+          edge => ({
+            origin:
+              edge.nodeA.code,
+
+            destination:
+              edge.nodeB.code,
+
+            distance:
+              edge.distance as number
+          })
+        ),
+
+      pois:
+        pois.map(
+          poi => ({
+            code:
+              poi.code,
+
+            name:
+              poi.name,
+
+            type:
+              poi.type,
+
+            description:
+              poi.description ??
+              null,
+
+            nodeId:
+              poi.node.code,
+
+            approaches:
+              poi.approaches
+                .filter(
+                  approach =>
+                    validNodeCodes.has(
+                      approach
+                        .fromNode
+                        .code
+                    )
+                )
+                .map(
+                  approach => ({
+                    fromNodeId:
+                      approach
+                        .fromNode
+                        .code,
+
+                    side:
+                      approach.side,
+
+                    distanceMeters:
+                      approach
+                        .distanceMeters ??
+                      null,
+
+                    instruction:
+                      approach
+                        .instruction ??
+                      null
+                  })
+                )
+          })
+        )
     };
   }
 
@@ -140,6 +288,7 @@ export function createNavigationService(
   };
 }
 
-export type NavigationService = ReturnType<
-  typeof createNavigationService
->;
+export type NavigationService =
+  ReturnType<
+    typeof createNavigationService
+  >;

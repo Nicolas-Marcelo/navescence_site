@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Entrar - NAVESCENCE</title>
+
+  <link
+    rel="stylesheet"
+    href="/auth.css"
+  >
+</head>
+
+<body>
+  <main class="page">
+    <section
+      class="auth-card"
+      aria-labelledby="titulo"
+    >
+      <a
+        class="brand"
+        href="/"
+        aria-label="Página inicial do NAVESCENCE"
+      >
+        <span
+          class="logo small"
+          aria-hidden="true"
+        >
+          N
+        </span>
+
+        <span>NAVESCENCE</span>
+      </a>
+
+      <div class="auth-header">
+        <p class="eyebrow">
+          Acesso
+        </p>
+
+        <h1 id="titulo">
+          Entre na sua conta
+        </h1>
+
+        <p>
+          Utilize seu e-mail e senha para continuar.
+        </p>
+      </div>
+
+      <div
+        id="message"
+        class="message hidden"
+        role="status"
+        aria-live="polite"
+      ></div>
+
+      <form
+        id="login-form"
+        novalidate
+      >
+        <div class="field">
+          <label for="email">
+            E-mail
+          </label>
+
+          <input
+            id="email"
+            name="email"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            maxlength="180"
+            placeholder="nome@exemplo.com"
+            aria-describedby="email-error"
+          >
+
+          <p
+            id="email-error"
+            class="field-error"
+            aria-live="polite"
+          ></p>
+        </div>
+
+        <div class="field">
+          <label for="password">
+            Senha
+          </label>
+
+          <div class="password-wrapper">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              maxlength="100"
+              aria-describedby="password-error"
+            >
+
+            <button
+              class="password-toggle"
+              type="button"
+              data-toggle-password="password"
+              aria-label="Mostrar senha"
+            >
+              Mostrar
+            </button>
+          </div>
+
+          <p
+            id="password-error"
+            class="field-error"
+            aria-live="polite"
+          ></p>
+        </div>
+
+        <button
+          id="submit-button"
+          class="button primary full"
+          type="submit"
+        >
+          Entrar
+        </button>
+      </form>
+
+      <button
+        id="resend-button"
+        class="link-button hidden"
+        type="button"
+      >
+        Reenviar e-mail de verificação
+      </button>
+
+      <div class="auth-footer">
+        <p>
+          Ainda não possui uma conta?
+        </p>
+
+        <a href="/cadastro.html">
+          Criar conta
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script
+    type="module"
+    src="/js/auth.js"
+  ></script>
+</body>
+</html>

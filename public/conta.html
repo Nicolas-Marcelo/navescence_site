@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Minha conta - NAVESCENCE</title>
+
+  <link
+    rel="stylesheet"
+    href="/auth.css"
+  >
+</head>
+
+<body>
+  <header class="topbar">
+    <a
+      class="brand"
+      href="/"
+    >
+      <span
+        class="logo small"
+        aria-hidden="true"
+      >
+        N
+      </span>
+
+      <span>NAVESCENCE</span>
+    </a>
+
+    <nav
+      class="topnav"
+      aria-label="Navegação principal"
+    >
+      <a href="/historico.html">
+        Histórico
+      </a>
+
+      <button
+        id="logout-button"
+        class="link-button"
+        type="button"
+      >
+        Sair
+      </button>
+    </nav>
+  </header>
+
+  <main class="dashboard">
+    <section>
+      <p class="eyebrow">
+        Usuário
+      </p>
+
+      <h1>
+        Minha conta
+      </h1>
+
+      <p>
+        Dados vinculados ao seu acesso ao NAVESCENCE.
+      </p>
+    </section>
+
+    <div
+      id="page-message"
+      class="message hidden"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <section
+      id="account-card"
+      class="profile-card"
+      aria-busy="true"
+    >
+      <div class="skeleton"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import {
+      carregarUsuario,
+      encerrarSessao,
+      exigirSessao
+    } from "/js/session.js";
+
+    exigirSessao();
+
+    const card =
+      document.getElementById(
+        "account-card"
+      );
+
+    const message =
+      document.getElementById(
+        "page-message"
+      );
+
+    const logoutButton =
+      document.getElementById(
+        "logout-button"
+      );
+
+    function traduzirRole(role) {
+      if (role === "ADMIN") {
+        return "Administrador";
+      }
+
+      return "Usuário";
+    }
+
+    function traduzirStatus(status) {
+      if (status === "ACTIVE") {
+        return "Conta ativa";
+      }
+
+      if (status === "PENDING_EMAIL") {
+        return "E-mail pendente";
+      }
+
+      if (status === "BLOCKED") {
+        return "Conta bloqueada";
+      }
+
+      return status ?? "-";
+    }
+
+    try {
+      const user =
+        await carregarUsuario();
+
+      const inicial =
+        user.name
+          ?.trim()
+          ?.charAt(0)
+          ?.toUpperCase() || "U";
+
+      card.setAttribute(
+        "aria-busy",
+        "false"
+      );
+
+      card.innerHTML = `
+        <div class="profile-header">
+          <div class="avatar">
+            ${inicial}
+          </div>
+
+          <div>
+            <h2>${escapeHtml(user.name)}</h2>
+            <p>${escapeHtml(user.email)}</p>
+          </div>
+        </div>
+
+        <dl class="profile-data">
+          <div>
+            <dt>Nome</dt>
+            <dd>${escapeHtml(user.name)}</dd>
+          </div>
+
+          <div>
+            <dt>E-mail</dt>
+            <dd>${escapeHtml(user.email)}</dd>
+          </div>
+
+          <div>
+            <dt>Situação</dt>
+            <dd>
+              ${escapeHtml(
+                traduzirStatus(user.status)
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>Tipo de usuário</dt>
+            <dd>
+              ${escapeHtml(
+                traduzirRole(user.role)
+              )}
+            </dd>
+          </div>
+        </dl>
+      `;
+    } catch (error) {
+      message.textContent =
+        "Não foi possível carregar os dados da conta.";
+
+      message.classList.remove(
+        "hidden"
+      );
+    }
+
+    logoutButton.addEventListener(
+      "click",
+      () => {
+        encerrarSessao();
+
+        window.location.href =
+          "/login.html";
+      }
+    );
+
+    function escapeHtml(value) {
+      const div =
+        document.createElement("div");
+
+      div.textContent =
+        String(value ?? "");
+
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

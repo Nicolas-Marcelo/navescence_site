@@ -1,59 +1,84 @@
 import mqtt from "mqtt";
 
-import { config } from "../config/env.js";
-import type { NodeId } from "../config/nodes.js";
-import { Presence, NodeStatus } from "../models/node.js";
-import type { NodeStore } from "../states/nodeStore.js";
+import {
+  config,
+} from "../config/env.js";
 
-import { parseScan } from "./parser.js";
+import type {
+  NodeId,
+} from "../config/nodes.js";
+
+import {
+  Presence,
+  NodeStatus,
+} from "../models/node.js";
+
+import type {
+  NodeStore,
+} from "../states/nodeStore.js";
+
+import {
+  parseScan,
+} from "./parser.js";
+
 import {
   subscriptions,
   topics,
-  getCommandTopic
+  getCommandTopic,
 } from "./topics.js";
 
 interface MqttOptions {
   store: NodeStore;
-  onUpdate: () => void;
-  onFinished: (nodeId: NodeId) => void;
+
+  onUpdate:
+    () => void;
+
+  onFinished: (
+    nodeId: NodeId,
+  ) => void;
 }
 
 export function createMqttService(
-  options: MqttOptions
+  options: MqttOptions,
 ) {
   const {
     store,
     onUpdate,
-    onFinished
+    onFinished,
   } = options;
 
   const brokerUrl =
     `mqtt://${config.mqtt.host}:${config.mqtt.port}`;
 
-  const client = mqtt.connect(
-    brokerUrl,
-    {
-      clientId:
-        `NAVESCENCE_CENTRAL_${Date.now()}`,
+  const client =
+    mqtt.connect(
+      brokerUrl,
+      {
+        clientId:
+          `NAVESCENCE_CENTRAL_${Date.now()}`,
 
-      username:
-        config.mqtt.user,
+        username:
+          config.mqtt.user,
 
-      password:
-        config.mqtt.password,
+        password:
+          config.mqtt.password,
 
-      clean: true,
+        clean:
+          true,
 
-      reconnectPeriod:
-        3000,
+        reconnectPeriod:
+          3000,
 
-      connectTimeout:
-        10_000
-    }
-  );
+        connectTimeout:
+          10_000,
+      },
+    );
 
   const pendingPresence =
-    new Map<NodeId, Presence>();
+    new Map<
+      NodeId,
+      Presence
+    >();
 
   let connectedOnce =
     false;
@@ -68,49 +93,28 @@ export function createMqttService(
       resolve => {
         markReady =
           resolve;
-      }
+      },
     );
 
   client.on(
     "connect",
     () => {
-      console.log();
-      console.log(
-        "NAVESCENCE - SISTEMA CENTRAL"
-      );
-
-      console.log(
-        `Broker: ${brokerUrl}`
-      );
-
-      console.log(
-        "MQTT conectado!"
-      );
-
       client.subscribe(
         subscriptions,
+
         error => {
           if (error) {
             console.error(
-              "Erro ao assinar tópicos:",
-              error.message
+              "[MQTT] Erro ao assinar tópicos:",
+              error.message,
             );
 
             return;
           }
 
           console.log(
-            "Monitorando:"
+            `[MQTT] Conectado em ${brokerUrl} | ${subscriptions.length} tópicos`,
           );
-
-          for (
-            const topic
-            of subscriptions
-          ) {
-            console.log(
-              `  ${topic}`
-            );
-          }
 
           if (
             !connectedOnce
@@ -120,16 +124,16 @@ export function createMqttService(
 
             markReady?.();
           }
-        }
+        },
       );
-    }
+    },
   );
 
   client.on(
     "message",
     (
       topic,
-      buffer
+      buffer,
     ) => {
       const message =
         buffer
@@ -138,19 +142,21 @@ export function createMqttService(
 
       const nodeId =
         topic.split(
-          "/"
+          "/",
         )[2];
 
-      if (!nodeId) return;
+      if (!nodeId) {
+        return;
+      }
 
       if (
         topic.startsWith(
-          topics.presence
+          topics.presence,
         )
       ) {
         handlePresence(
           nodeId,
-          message
+          message,
         );
 
         return;
@@ -158,7 +164,7 @@ export function createMqttService(
 
       if (
         !store.has(
-          nodeId
+          nodeId,
         )
       ) {
         return;
@@ -166,12 +172,12 @@ export function createMqttService(
 
       if (
         topic.startsWith(
-          topics.status
+          topics.status,
         )
       ) {
         handleStatus(
           nodeId,
-          message
+          message,
         );
 
         return;
@@ -179,19 +185,19 @@ export function createMqttService(
 
       if (
         topic.startsWith(
-          topics.scan
+          topics.scan,
         )
       ) {
         handleScan(
           nodeId,
-          message
+          message,
         );
       }
-    }
+    },
   );
 
   function parsePresence(
-    message: string
+    message: string,
   ): Presence | null {
     const value =
       message
@@ -217,16 +223,16 @@ export function createMqttService(
 
   function handlePresence(
     nodeId: NodeId,
-    message: string
+    message: string,
   ) {
     const presence =
       parsePresence(
-        message
+        message,
       );
 
     if (!presence) {
       console.warn(
-        `[MQTT] Presença inválida de ${nodeId}: ${message}`
+        `[MQTT] Presença inválida de ${nodeId}: ${message}`,
       );
 
       return;
@@ -234,16 +240,12 @@ export function createMqttService(
 
     if (
       !store.has(
-        nodeId
+        nodeId,
       )
     ) {
       pendingPresence.set(
         nodeId,
-        presence
-      );
-
-      console.log(
-        `[PRESENCA] ${nodeId} -> ${presence} aguardando cadastro`
+        presence,
       );
 
       return;
@@ -251,17 +253,17 @@ export function createMqttService(
 
     applyPresence(
       nodeId,
-      presence
+      presence,
     );
   }
 
   function applyPresence(
     nodeId: NodeId,
-    presence: Presence
+    presence: Presence,
   ) {
     if (
       !store.has(
-        nodeId
+        nodeId,
       )
     ) {
       return;
@@ -269,15 +271,11 @@ export function createMqttService(
 
     store.setPresence(
       nodeId,
-      presence
+      presence,
     );
 
     pendingPresence.delete(
-      nodeId
-    );
-
-    console.log(
-      `[PRESENCA] ${nodeId} -> ${presence}`
+      nodeId,
     );
 
     onUpdate();
@@ -290,13 +288,12 @@ export function createMqttService(
     for (
       const [
         nodeId,
-        presence
-      ]
-      of pendingPresence
+        presence,
+      ] of pendingPresence
     ) {
       if (
         !store.has(
-          nodeId
+          nodeId,
         )
       ) {
         continue;
@@ -304,15 +301,11 @@ export function createMqttService(
 
       store.setPresence(
         nodeId,
-        presence
+        presence,
       );
 
       pendingPresence.delete(
-        nodeId
-      );
-
-      console.log(
-        `[PRESENCA] ${nodeId} -> ${presence} aplicado após sincronização`
+        nodeId,
       );
 
       updated =
@@ -326,7 +319,7 @@ export function createMqttService(
 
   function handleStatus(
     nodeId: NodeId,
-    message: string
+    message: string,
   ) {
     const status =
       message
@@ -339,7 +332,7 @@ export function createMqttService(
     ) {
       store.setStatus(
         nodeId,
-        NodeStatus.Checking
+        NodeStatus.Checking,
       );
     } else if (
       status ===
@@ -347,15 +340,15 @@ export function createMqttService(
     ) {
       store.setStatus(
         nodeId,
-        NodeStatus.Finished
+        NodeStatus.Finished,
       );
 
       store.finishVerification(
-        nodeId
+        nodeId,
       );
 
       onFinished(
-        nodeId
+        nodeId,
       );
     } else if (
       status ===
@@ -363,101 +356,102 @@ export function createMqttService(
     ) {
       store.setStatus(
         nodeId,
-        NodeStatus.Busy
+        NodeStatus.Busy,
       );
     } else {
       console.warn(
-        `[MQTT] Status inválido de ${nodeId}: ${message}`
+        `[MQTT] Status inválido de ${nodeId}: ${message}`,
       );
 
       return;
     }
-
-    console.log(
-      `[STATUS] ${nodeId} -> ${status}`
-    );
 
     onUpdate();
   }
 
   function handleScan(
     nodeId: NodeId,
-    message: string
+    message: string,
   ) {
-    const scan =
-      parseScan(
-        message
+    try {
+      const scan =
+        parseScan(
+          message,
+        );
+
+      store.addScan(
+        nodeId,
+        scan,
       );
 
-    store.addScan(
-      nodeId,
-      scan
-    );
-
-    console.log(
-      `[SCAN] ${nodeId} encontrou ` +
-      `${scan.name ?? "SEM_NOME"} | ` +
-      `${scan.mac ?? "SEM_MAC"} | ` +
-      `M15: ${scan.m15 ?? "?"} dBm`
-    );
-
-    onUpdate();
+      onUpdate();
+    } catch (error) {
+      console.error(
+        `[MQTT] Scan inválido recebido de ${nodeId}:`,
+        error,
+      );
+    }
   }
 
   function sendCheck(
-    nodeId: NodeId
+    nodeId: NodeId,
   ) {
     client.publish(
       getCommandTopic(
-        nodeId
+        nodeId,
       ),
 
       "VERIFICAR",
 
       {
-        qos: 1
-      }
+        qos: 1,
+      },
     );
   }
 
   const pendingTimer =
     setInterval(
       applyPendingPresence,
-      1000
+      1000,
     );
 
   pendingTimer.unref();
 
   client.on(
     "error",
-    error =>
+    error => {
       console.error(
-        "Erro MQTT:",
-        error.message
-      )
+        "[MQTT] Erro:",
+        error.message,
+      );
+    },
   );
 
   client.on(
     "offline",
-    () =>
-      console.log(
-        "Broker MQTT indisponível."
-      )
+    () => {
+      console.warn(
+        "[MQTT] Broker indisponível.",
+      );
+    },
   );
 
   client.on(
     "reconnect",
-    () =>
+    () => {
       console.log(
-        "Tentando reconectar ao MQTT..."
-      )
+        "[MQTT] Reconectando...",
+      );
+    },
   );
 
   return {
     ready,
+
     sendCheck,
 
-    isConnected: () =>
-      client.connected
+    isConnected:
+      () =>
+        client.connected,
   };
 }

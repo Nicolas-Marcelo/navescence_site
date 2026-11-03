@@ -36,6 +36,37 @@ import {
   useSensors,
 } from "../../hooks/useSensors";
 
+function traduzirDiagnostico(
+  diagnostic:
+    string | undefined,
+) {
+  switch (
+    diagnostic
+  ) {
+    case "OK":
+      return "Funcionamento normal";
+
+    case "VIZINHO_NAO_DETECTADO":
+      return "Vizinho não detectado";
+
+    case "NO_INDISPONIVEL":
+      return "Sensor indisponível";
+
+    case "VERIFICANDO":
+      return "Verificando";
+
+    case undefined:
+    case "":
+      return "Sem diagnóstico";
+
+    default:
+      return diagnostic.replaceAll(
+        "_",
+        " ",
+      );
+  }
+}
+
 export function DashboardPage() {
   const {
     sensors,
@@ -43,36 +74,43 @@ export function DashboardPage() {
     loading,
     error,
     reload,
-  } = useSensors(true);
+  } =
+    useSensors(true);
 
   const {
     alerts,
-    reload: reloadAlerts,
-  } = useAlerts();
+    reload:
+      reloadAlerts,
+  } =
+    useAlerts();
 
   const {
     selectedEnvironmentId,
     selectedEnvironment,
-  } = useEnvironment();
+  } =
+    useEnvironment();
 
   const visibleSensors =
-    useMemo(() => {
-      if (
-        selectedEnvironmentId ===
-        "ALL"
-      ) {
-        return sensors;
-      }
+    useMemo(
+      () => {
+        if (
+          selectedEnvironmentId ===
+          "ALL"
+        ) {
+          return sensors;
+        }
 
-      return sensors.filter(
-        sensor =>
-          sensor.environmentId ===
-          selectedEnvironmentId,
-      );
-    }, [
-      sensors,
-      selectedEnvironmentId,
-    ]);
+        return sensors.filter(
+          sensor =>
+            sensor.environmentId ===
+            selectedEnvironmentId,
+        );
+      },
+      [
+        sensors,
+        selectedEnvironmentId,
+      ],
+    );
 
   const codes =
     useMemo(
@@ -83,32 +121,39 @@ export function DashboardPage() {
               sensor.code,
           ),
         ),
-      [visibleSensors],
+      [
+        visibleSensors,
+      ],
     );
 
   const visibleAlerts =
-    useMemo(() => {
-      if (
-        selectedEnvironmentId ===
-        "ALL"
-      ) {
-        return alerts;
-      }
+    useMemo(
+      () => {
+        if (
+          selectedEnvironmentId ===
+          "ALL"
+        ) {
+          return alerts;
+        }
 
-      return alerts.filter(
-        alert =>
-          alert.nodeCode &&
-          codes.has(
-            alert.nodeCode,
-          ),
-      );
-    }, [
-      alerts,
-      codes,
-      selectedEnvironmentId,
-    ]);
+        return alerts.filter(
+          alert =>
+            alert.nodeCode &&
+            codes.has(
+              alert.nodeCode,
+            ),
+        );
+      },
+      [
+        alerts,
+        codes,
+        selectedEnvironmentId,
+      ],
+    );
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <LoadingState message="Carregando infraestrutura..." />
     );
@@ -118,6 +163,7 @@ export function DashboardPage() {
     visibleSensors.map(
       sensor => ({
         sensor,
+
         runtime:
           dashboard.nodes[
             sensor.code
@@ -173,7 +219,8 @@ export function DashboardPage() {
 
           <h1>
             {selectedEnvironment
-              ? selectedEnvironment.name
+              ? selectedEnvironment
+                  .name
               : "Visão geral do sistema"}
           </h1>
 
@@ -214,7 +261,10 @@ export function DashboardPage() {
               void atualizar()
             }
           >
-            <RefreshCw size={17} />
+            <RefreshCw
+              size={17}
+            />
+
             Atualizar
           </button>
         </div>
@@ -242,17 +292,23 @@ export function DashboardPage() {
 
         <StatCard
           label="Online"
-          value={online}
+          value={
+            online
+          }
           description="Disponíveis"
           variant="success"
           icon={
-            <Wifi size={20} />
+            <Wifi
+              size={20}
+            />
           }
         />
 
         <StatCard
           label="Offline"
-          value={offline}
+          value={
+            offline
+          }
           description="Indisponíveis"
           variant={
             offline
@@ -303,59 +359,255 @@ export function DashboardPage() {
           </div>
         </header>
 
-        <div className="simple-list embedded">
-          {runtimeNodes.map(
-            ({
-              sensor,
-              runtime,
-            }) => (
-              <article
-                key={sensor.id}
-                className="simple-row"
-              >
-                <div
-                  className={`simple-row-icon ${
-                    runtime?.presence ===
-                    "OFFLINE"
-                      ? "danger"
-                      : ""
-                  }`}
-                >
-                  <RadioTower
-                    size={18}
-                  />
-                </div>
-
-                <div className="simple-row-main">
-                  <strong>
-                    {sensor.code}
-                  </strong>
-
-                  <span>
-                    {sensor.name ??
-                      "Sensor NAVESCENCE"}
-                  </span>
-                </div>
-
-                <StatusBadge
-                  value={
-                    runtime?.presence
+        <div
+          style={{
+            width: "100%",
+          }}
+        >
+          {runtimeNodes.length ===
+          0 ? (
+            <div
+              className="empty-simple"
+            >
+              Nenhum sensor cadastrado.
+            </div>
+          ) : (
+            runtimeNodes.map(
+              ({
+                sensor,
+                runtime,
+              }) => (
+                <article
+                  key={
+                    sensor.id
                   }
-                />
+                  style={{
+                    minHeight:
+                      "78px",
 
-                <div className="simple-row-meta">
-                  <span>
-                    Diagnóstico
-                  </span>
+                    display:
+                      "grid",
 
-                  <strong>
-                    {runtime
-                      ?.diagnostic ??
-                      "—"}
-                  </strong>
-                </div>
-              </article>
-            ),
+                    gridTemplateColumns:
+                      "42px minmax(220px, 1fr) 170px minmax(220px, 0.9fr)",
+
+                    alignItems:
+                      "center",
+
+                    columnGap:
+                      "22px",
+
+                    padding:
+                      "13px 16px",
+
+                    borderTop:
+                      "1px solid var(--border)",
+                  }}
+                >
+                  <div
+                    className={`simple-row-icon ${
+                      runtime?.presence ===
+                      "OFFLINE"
+                        ? "danger"
+                        : ""
+                    }`}
+                  >
+                    <RadioTower
+                      size={18}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      minWidth:
+                        0,
+
+                      display:
+                        "flex",
+
+                      flexDirection:
+                        "column",
+                    }}
+                  >
+                    <span
+                      style={{
+                        marginBottom:
+                          "4px",
+
+                        color:
+                          "var(--muted)",
+
+                        fontSize:
+                          "0.61rem",
+
+                        fontWeight:
+                          800,
+
+                        letterSpacing:
+                          "0.08em",
+
+                        textTransform:
+                          "uppercase",
+                      }}
+                    >
+                      Sensor
+                    </span>
+
+                    <strong
+                      style={{
+                        color:
+                          "var(--primary-deep)",
+
+                        fontSize:
+                          "0.84rem",
+                      }}
+                    >
+                      {
+                        sensor.code
+                      }
+                    </strong>
+
+                    <span
+                      style={{
+                        marginTop:
+                          "3px",
+
+                        color:
+                          "var(--muted)",
+
+                        fontSize:
+                          "0.7rem",
+
+                        whiteSpace:
+                          "nowrap",
+
+                        overflow:
+                          "hidden",
+
+                        textOverflow:
+                          "ellipsis",
+                      }}
+                    >
+                      {sensor.name ??
+                        "Sensor NAVESCENCE"}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      minWidth:
+                        "150px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display:
+                          "block",
+
+                        marginBottom:
+                          "7px",
+
+                        color:
+                          "var(--muted)",
+
+                        fontSize:
+                          "0.61rem",
+
+                        fontWeight:
+                          800,
+
+                        letterSpacing:
+                          "0.08em",
+
+                        textTransform:
+                          "uppercase",
+                      }}
+                    >
+                      Presença
+                    </span>
+
+                    <StatusBadge
+                      value={
+                        runtime
+                          ?.presence
+                      }
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      minWidth:
+                        0,
+
+                      display:
+                        "flex",
+
+                      flexDirection:
+                        "column",
+
+                      alignItems:
+                        "flex-start",
+                    }}
+                  >
+                    <span
+                      style={{
+                        marginBottom:
+                          "5px",
+
+                        color:
+                          "var(--muted)",
+
+                        fontSize:
+                          "0.61rem",
+
+                        fontWeight:
+                          800,
+
+                        letterSpacing:
+                          "0.08em",
+
+                        textTransform:
+                          "uppercase",
+                      }}
+                    >
+                      Diagnóstico
+                    </span>
+
+                    <strong
+                      style={{
+                        maxWidth:
+                          "100%",
+
+                        color:
+                          runtime
+                              ?.diagnostic ===
+                            "OK"
+                            ? "var(--success)"
+                            : runtime
+                                  ?.presence ===
+                                "OFFLINE"
+                              ? "var(--danger)"
+                              : "var(--text-soft)",
+
+                        fontSize:
+                          "0.73rem",
+
+                        lineHeight:
+                          1.4,
+
+                        overflowWrap:
+                          "anywhere",
+                      }}
+                    >
+                      {traduzirDiagnostico(
+                        runtime
+                          ?.diagnostic,
+                      )}
+                    </strong>
+                  </div>
+                </article>
+              ),
+            )
           )}
         </div>
       </section>

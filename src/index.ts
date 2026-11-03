@@ -1,45 +1,113 @@
-import type { NodeId } from "./config/nodes.js";
+import type {
+  NodeId,
+} from "./config/nodes.js";
 
-import { createWebServer } from "./api/server.js";
-import { createMqttService } from "./mqtt/client.js";
+import {
+  createWebServer,
+} from "./api/server.js";
 
-import { createAlertRepository } from "./repositories/alertRepository.js";
-import { createEdgeRepository } from "./repositories/edgeRepository.js";
-import { createEnvironmentRepository } from "./repositories/environmentRepository.js";
-import { createNodeRepository } from "./repositories/nodeRepository.js";
-import { createPoiRepository } from "./repositories/poiRepository.js";
-import { createVerificationRepository } from "./repositories/verificationRepository.js";
+import {
+  createMqttService,
+} from "./mqtt/client.js";
 
-import { createAlertService } from "./services/alertService.js";
-import { createCoordinator } from "./services/coordinator.js";
-import { getDashboard } from "./services/dashboard.js";
-import { createEnvironmentService } from "./services/environmentService.js";
-import { createNavigationService } from "./services/navigationService.js";
-import { createNodeService } from "./services/nodeService.js";
-import { createPoiService } from "./services/poiService.js";
-import { createTopologyService } from "./services/topologyService.js";
-import { createVerificationService } from "./services/verificationService.js";
+import {
+  createAlertRepository,
+} from "./repositories/alertRepository.js";
 
-import { createNodeStore } from "./states/nodeStore.js";
-import { createTopologyStore } from "./states/topologyStore.js";
+import {
+  createEdgeRepository,
+} from "./repositories/edgeRepository.js";
 
-import { sleep } from "./utils/time.js";
+import {
+  createEnvironmentRepository,
+} from "./repositories/environmentRepository.js";
 
-const store = createNodeStore();
-const topology = createTopologyStore();
+import {
+  createNodeRepository,
+} from "./repositories/nodeRepository.js";
 
-let emitDashboard = () => {};
+import {
+  createPoiRepository,
+} from "./repositories/poiRepository.js";
 
-let emitNavigationConfigUpdated = (
-  _environmentId: number | null = null
-) => {};
+import {
+  createVerificationRepository,
+} from "./repositories/verificationRepository.js";
 
-let sendCheck = (
-  _nodeId: NodeId
-) => {};
+import {
+  createAlertService,
+} from "./services/alertService.js";
+
+import {
+  createCoordinator,
+} from "./services/coordinator.js";
+
+import {
+  getDashboard,
+} from "./services/dashboard.js";
+
+import {
+  createEnvironmentService,
+} from "./services/environmentService.js";
+
+import {
+  createNavigationService,
+} from "./services/navigationService.js";
+
+import {
+  createNodeService,
+} from "./services/nodeService.js";
+
+import {
+  createPoiService,
+} from "./services/poiService.js";
+
+import {
+  createTopologyService,
+} from "./services/topologyService.js";
+
+import {
+  createVerificationService,
+} from "./services/verificationService.js";
+
+import {
+  createNodeStore,
+} from "./states/nodeStore.js";
+
+import {
+  createTopologyStore,
+} from "./states/topologyStore.js";
+
+import {
+  sleep,
+} from "./utils/time.js";
+
+const store =
+  createNodeStore();
+
+const topology =
+  createTopologyStore();
+
+let emitDashboard =
+  () => {};
+
+let emitNavigationConfigUpdated =
+  (
+    _environmentId:
+      number | null =
+      null,
+  ) => {};
+
+let sendCheck =
+  (
+    _nodeId:
+      NodeId,
+  ) => {};
 
 function notifyNavigationUpdate() {
-  emitNavigationConfigUpdated(null);
+  emitNavigationConfigUpdated(
+    null,
+  );
 }
 
 const nodeRepository =
@@ -63,90 +131,93 @@ const alertRepository =
 const nodeService =
   createNodeService(
     nodeRepository,
-    notifyNavigationUpdate
+    notifyNavigationUpdate,
   );
 
 const topologyService =
   createTopologyService(
     edgeRepository,
     nodeRepository,
-    notifyNavigationUpdate
+    notifyNavigationUpdate,
   );
 
 const environmentService =
   createEnvironmentService(
     environmentRepository,
-    notifyNavigationUpdate
+    notifyNavigationUpdate,
   );
 
 const poiService =
   createPoiService(
     poiRepository,
     nodeRepository,
-    notifyNavigationUpdate
+    notifyNavigationUpdate,
   );
 
 const navigationService =
   createNavigationService(
     nodeRepository,
     edgeRepository,
-    poiRepository
+    poiRepository,
   );
 
 const verificationService =
   createVerificationService(
     verificationRepository,
-    nodeRepository
+    nodeRepository,
   );
 
 const alertService =
   createAlertService(
     alertRepository,
-    nodeRepository
+    nodeRepository,
   );
 
 async function syncInfrastructure() {
   const sensors =
-    await nodeService.listOperational();
+    await nodeService
+      .listOperational();
 
   store.sync(
     sensors.map(
-      sensor => sensor.code
-    )
+      sensor =>
+        sensor.code,
+    ),
   );
 
   const links =
     await topologyService
       .listOperationalLinks();
 
-  topology.sync(links);
-
-  console.log(
-    `Sensores ativos: ${
-      store.getIds().join(", ") ||
-      "nenhum"
-    }`
+  topology.sync(
+    links,
   );
 
-  console.log(
-    `Conexões ativas: ${links.length}`
-  );
+  return {
+    sensors:
+      sensors.length,
+
+    links:
+      links.length,
+  };
 }
 
 function syncCurrentAlerts() {
   const currentAlerts =
     getDashboard(
       store,
-      topology
+      topology,
     ).alerts;
 
-  alertService.syncDashboardAlerts(
-    currentAlerts
-  );
+  alertService
+    .syncDashboardAlerts(
+      currentAlerts,
+    );
 }
 
 function refreshDashboard() {
   emitDashboard();
+
   syncCurrentAlerts();
 }
 
@@ -154,20 +225,25 @@ const coordinator =
   createCoordinator({
     store,
 
-    sendCheck: nodeId => {
-      sendCheck(nodeId);
-    },
+    sendCheck:
+      nodeId => {
+        sendCheck(
+          nodeId,
+        );
+      },
 
-    sendDashboard: () => {
-      refreshDashboard();
-    },
+    sendDashboard:
+      () => {
+        refreshDashboard();
+      },
 
     saveVerification:
       async data => {
         const run =
-          await verificationService.save(
-            data
-          );
+          await verificationService
+            .save(
+              data,
+            );
 
         await alertService
           .syncVerificationResult({
@@ -178,11 +254,11 @@ const coordinator =
               data.result,
 
             verificationRunId:
-              run.id
+              run.id,
           });
 
         return run;
-      }
+      },
   });
 
 const web =
@@ -201,38 +277,58 @@ const web =
         coordinator.getStatus,
 
       run:
-        coordinator.runManual
+        coordinator.runManual,
     },
 
     async () => {
       await syncInfrastructure();
+
       refreshDashboard();
-    }
+    },
   );
 
 emitDashboard =
   web.sendDashboard;
 
 emitNavigationConfigUpdated =
-  web.sendNavigationConfigUpdated;
+  web
+    .sendNavigationConfigUpdated;
 
 const mqtt =
   createMqttService({
     store,
 
-    onUpdate: () => {
-      refreshDashboard();
-    },
+    onUpdate:
+      () => {
+        refreshDashboard();
+      },
 
     onFinished:
-      coordinator.finishNode
+      coordinator.finishNode,
   });
 
 sendCheck =
   mqtt.sendCheck;
 
 async function start() {
-  await syncInfrastructure();
+  console.log();
+  console.log(
+    "========================================",
+  );
+  console.log(
+    "        NAVESCENCE - SISTEMA CENTRAL",
+  );
+  console.log(
+    "========================================",
+  );
+  console.log();
+
+  const infrastructure =
+    await syncInfrastructure();
+
+  console.log(
+    `[INFRA] ${infrastructure.sensors} sensores ativos | ${infrastructure.links} conexões`,
+  );
 
   await web.start();
 
@@ -240,14 +336,18 @@ async function start() {
 
   refreshDashboard();
 
-  await sleep(3000);
+  await sleep(
+    3000,
+  );
 
   await coordinator.start();
 }
 
-start().catch(error => {
-  console.error(
-    "Erro ao iniciar NAVESCENCE:",
-    error
-  );
-});
+start().catch(
+  error => {
+    console.error(
+      "[SISTEMA] Falha ao iniciar NAVESCENCE:",
+      error,
+    );
+  },
+);

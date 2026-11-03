@@ -1,11 +1,12 @@
 import type {
+  NodeData,
   NodeRepository,
-  NodeData
 } from "../repositories/nodeRepository.js";
 
 export function createNodeService(
   repository: NodeRepository,
-  onNavigationUpdate: () => void = () => {}
+  onNavigationUpdate:
+    () => void = () => {},
 ) {
   function list() {
     return repository.findAll();
@@ -15,26 +16,50 @@ export function createNodeService(
     return repository.findOperational();
   }
 
-  function get(id: number) {
-    return repository.findById(id);
+  function get(
+    id: number,
+  ) {
+    return repository.findById(
+      id,
+    );
   }
 
-  async function create(data: NodeData) {
-    const code = data.code?.trim().toUpperCase();
+  async function create(
+    data: NodeData,
+  ) {
+    const code =
+      data.code
+        ?.trim()
+        .toUpperCase();
 
     if (!code) {
       throw new Error(
-        "O código do sensor é obrigatório."
+        "O código do sensor é obrigatório.",
       );
     }
 
-    const node = await repository.create({
-      ...data,
-      code,
-      mac: data.mac?.trim().toUpperCase() || null,
-      name: data.name?.trim() || null,
-      location: data.location?.trim() || null
-    });
+    const node =
+      await repository.create({
+        ...data,
+
+        code,
+
+        mac:
+          data.mac
+            ?.trim()
+            .toUpperCase() ||
+          null,
+
+        name:
+          data.name
+            ?.trim() ||
+          null,
+
+        location:
+          data.location
+            ?.trim() ||
+          null,
+      });
 
     onNavigationUpdate();
 
@@ -43,35 +68,58 @@ export function createNodeService(
 
   async function update(
     id: number,
-    data: Partial<NodeData>
+    data:
+      Partial<NodeData>,
   ) {
-    const node = await repository.findById(id);
+    const node =
+      await repository.findById(
+        id,
+      );
 
-    if (!node) return null;
+    if (!node) {
+      return null;
+    }
 
-    const updated = await repository.update(id, {
-      ...data,
+    const updated =
+      await repository.update(
+        id,
+        {
+          ...data,
 
-      code:
-        data.code === undefined
-          ? undefined
-          : data.code.trim().toUpperCase(),
+          code:
+            data.code ===
+            undefined
+              ? undefined
+              : data.code
+                  .trim()
+                  .toUpperCase(),
 
-      mac:
-        data.mac === undefined
-          ? undefined
-          : data.mac?.trim().toUpperCase() || null,
+          mac:
+            data.mac ===
+            undefined
+              ? undefined
+              : data.mac
+                  ?.trim()
+                  .toUpperCase() ||
+                null,
 
-      name:
-        data.name === undefined
-          ? undefined
-          : data.name?.trim() || null,
+          name:
+            data.name ===
+            undefined
+              ? undefined
+              : data.name
+                  ?.trim() ||
+                null,
 
-      location:
-        data.location === undefined
-          ? undefined
-          : data.location?.trim() || null
-    });
+          location:
+            data.location ===
+            undefined
+              ? undefined
+              : data.location
+                  ?.trim() ||
+                null,
+        },
+      );
 
     onNavigationUpdate();
 
@@ -81,20 +129,71 @@ export function createNodeService(
   async function setStatus(
     id: number,
     active?: boolean,
-    maintenance?: boolean
+    maintenance?: boolean,
   ) {
-    const node = await repository.findById(id);
+    const node =
+      await repository.findById(
+        id,
+      );
 
-    if (!node) return null;
+    if (!node) {
+      return null;
+    }
 
-    const updated = await repository.update(id, {
-      active,
-      maintenance
-    });
+    const updated =
+      await repository.update(
+        id,
+        {
+          active,
+          maintenance,
+        },
+      );
 
     onNavigationUpdate();
 
     return updated;
+  }
+
+  async function remove(
+    id: number,
+  ) {
+    const node =
+      await repository.findById(
+        id,
+      );
+
+    if (!node) {
+      return null;
+    }
+
+    if (
+      node._count
+        .pointsOfInterest >
+      0
+    ) {
+      throw new Error(
+        "SENSOR_HAS_POIS",
+      );
+    }
+
+    if (
+      node._count
+        .poiApproachesFrom >
+      0
+    ) {
+      throw new Error(
+        "SENSOR_HAS_POI_APPROACHES",
+      );
+    }
+
+    const removed =
+      await repository.remove(
+        id,
+      );
+
+    onNavigationUpdate();
+
+    return removed;
   }
 
   return {
@@ -103,9 +202,12 @@ export function createNodeService(
     get,
     create,
     update,
-    setStatus
+    setStatus,
+    remove,
   };
 }
 
 export type NodeService =
-  ReturnType<typeof createNodeService>;
+  ReturnType<
+    typeof createNodeService
+  >;

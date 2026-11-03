@@ -30,7 +30,9 @@ import type {
   RegisterResponse,
 } from "../../types/auth";
 
-import { useAuth } from "../../context/AuthContext";
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 export function CadastroPage() {
   const {
@@ -40,31 +42,43 @@ export function CadastroPage() {
   const navigate =
     useNavigate();
 
-  const [serverError, setServerError] =
-    useState<string | null>(null);
+  const [
+    serverError,
+    setServerError,
+  ] =
+    useState<string | null>(
+      null,
+    );
 
-  const [success, setSuccess] =
+  const [
+    success,
+    setSuccess,
+  ] =
     useState(false);
 
   const {
     register,
     handleSubmit,
     setError,
+
     formState: {
       errors,
       isSubmitting,
     },
-  } = useForm<CadastroFormData>({
-    resolver:
-      zodResolver(cadastroSchema),
+  } =
+    useForm<CadastroFormData>({
+      resolver:
+        zodResolver(
+          cadastroSchema,
+        ),
 
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
+      defaultValues: {
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      },
+    });
 
   if (authenticated) {
     return (
@@ -76,34 +90,54 @@ export function CadastroPage() {
   }
 
   async function onSubmit(
-    data: CadastroFormData,
+    data:
+      CadastroFormData,
   ) {
     setServerError(null);
     setSuccess(false);
 
     try {
-      await apiRequest<RegisterResponse>(
+      await apiRequest<
+        RegisterResponse
+      >(
         "/api/auth/register",
         {
           method: "POST",
 
-          body: JSON.stringify({
-            name: data.name.trim(),
-            email: data.email.trim(),
-            password: data.password,
-          }),
+          body:
+            JSON.stringify({
+              name:
+                data.name.trim(),
+
+              email:
+                data.email
+                  .trim()
+                  .toLowerCase(),
+
+              password:
+                data.password,
+            }),
         },
       );
 
       setSuccess(true);
 
-      setTimeout(() => {
-        navigate("/login", {
-          replace: true,
-        });
-      }, 1800);
+      setTimeout(
+        () => {
+          navigate(
+            "/login",
+            {
+              replace: true,
+            },
+          );
+        },
+        1200,
+      );
     } catch (error) {
-      if (error instanceof ApiError) {
+      if (
+        error instanceof
+        ApiError
+      ) {
         if (
           error.code ===
           "EMAIL_IN_USE"
@@ -163,10 +197,40 @@ export function CadastroPage() {
 
           return;
         }
+
+        if (
+          error.code ===
+          "TOO_MANY_ATTEMPTS"
+        ) {
+          setServerError(
+            "Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.",
+          );
+
+          return;
+        }
+
+        if (
+          error.code ===
+          "VALIDATION_ERROR"
+        ) {
+          setServerError(
+            error.message ||
+              "Verifique os dados informados.",
+          );
+
+          return;
+        }
+
+        setServerError(
+          error.message ||
+            "Não foi possível realizar o cadastro.",
+        );
+
+        return;
       }
 
       setServerError(
-        "Não foi possível realizar o cadastro.",
+        "Não foi possível conectar ao servidor.",
       );
     }
   }
@@ -185,7 +249,9 @@ export function CadastroPage() {
             N
           </span>
 
-          <span>NAVESCENCE</span>
+          <span>
+            NAVESCENCE
+          </span>
         </Link>
 
         <div className="auth-heading">
@@ -193,11 +259,14 @@ export function CadastroPage() {
             Cadastro
           </span>
 
-          <h1>Crie sua conta</h1>
+          <h1>
+            Crie sua conta
+          </h1>
 
           <p>
-            Informe seus dados para
-            utilizar o NAVESCENCE.
+            Informe seus dados
+            para utilizar o
+            NAVESCENCE.
           </p>
         </div>
 
@@ -215,19 +284,23 @@ export function CadastroPage() {
             className="alert success"
             role="status"
           >
-            Conta criada. Confirme seu
-            e-mail antes de entrar.
+            Conta criada com
+            sucesso.
           </div>
         )}
 
         <form
           onSubmit={
-            handleSubmit(onSubmit)
+            handleSubmit(
+              onSubmit,
+            )
           }
           noValidate
         >
           <div className="field">
-            <label htmlFor="name">
+            <label
+              htmlFor="name"
+            >
               Nome
             </label>
 
@@ -235,45 +308,72 @@ export function CadastroPage() {
               id="name"
               type="text"
               autoComplete="name"
-              placeholder="Seu nome"
+              maxLength={120}
+              placeholder="Seu nome completo"
               aria-invalid={
-                Boolean(errors.name)
+                Boolean(
+                  errors.name,
+                )
               }
-              {...register("name")}
+              {...register(
+                "name",
+              )}
             />
 
             {errors.name && (
-              <span className="field-error">
-                {errors.name.message}
+              <span
+                className="field-error"
+                role="alert"
+              >
+                {
+                  errors.name
+                    .message
+                }
               </span>
             )}
           </div>
 
           <div className="field">
-            <label htmlFor="email">
+            <label
+              htmlFor="email"
+            >
               E-mail
             </label>
 
             <input
               id="email"
               type="email"
+              inputMode="email"
               autoComplete="email"
+              maxLength={180}
               placeholder="nome@exemplo.com"
               aria-invalid={
-                Boolean(errors.email)
+                Boolean(
+                  errors.email,
+                )
               }
-              {...register("email")}
+              {...register(
+                "email",
+              )}
             />
 
             {errors.email && (
-              <span className="field-error">
-                {errors.email.message}
+              <span
+                className="field-error"
+                role="alert"
+              >
+                {
+                  errors.email
+                    .message
+                }
               </span>
             )}
           </div>
 
           <div className="field">
-            <label htmlFor="password">
+            <label
+              htmlFor="password"
+            >
               Senha
             </label>
 
@@ -281,27 +381,43 @@ export function CadastroPage() {
               id="password"
               type="password"
               autoComplete="new-password"
+              minLength={8}
+              maxLength={72}
               aria-invalid={
-                Boolean(errors.password)
+                Boolean(
+                  errors.password,
+                )
               }
-              {...register("password")}
+              {...register(
+                "password",
+              )}
             />
 
             <small className="field-help">
-              No mínimo 8 caracteres,
-              contendo letra maiúscula,
-              minúscula e número.
+              Entre 8 e 72
+              caracteres, contendo
+              pelo menos uma letra
+              maiúscula, uma
+              minúscula e um número.
             </small>
 
             {errors.password && (
-              <span className="field-error">
-                {errors.password.message}
+              <span
+                className="field-error"
+                role="alert"
+              >
+                {
+                  errors.password
+                    .message
+                }
               </span>
             )}
           </div>
 
           <div className="field">
-            <label htmlFor="confirmPassword">
+            <label
+              htmlFor="confirmPassword"
+            >
               Confirmar senha
             </label>
 
@@ -309,9 +425,12 @@ export function CadastroPage() {
               id="confirmPassword"
               type="password"
               autoComplete="new-password"
+              minLength={8}
+              maxLength={72}
               aria-invalid={
                 Boolean(
-                  errors.confirmPassword,
+                  errors
+                    .confirmPassword,
                 )
               }
               {...register(
@@ -319,10 +438,15 @@ export function CadastroPage() {
               )}
             />
 
-            {errors.confirmPassword && (
-              <span className="field-error">
+            {errors
+              .confirmPassword && (
+              <span
+                className="field-error"
+                role="alert"
+              >
                 {
-                  errors.confirmPassword
+                  errors
+                    .confirmPassword
                     .message
                 }
               </span>
@@ -339,7 +463,9 @@ export function CadastroPage() {
           >
             {isSubmitting
               ? "Criando conta..."
-              : "Criar conta"}
+              : success
+                ? "Conta criada"
+                : "Criar conta"}
           </button>
         </form>
 

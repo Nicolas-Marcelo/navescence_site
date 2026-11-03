@@ -1,48 +1,54 @@
 import type {
-  Application
+  Application,
 } from "express";
 
 import type {
-  NodeStore
+  NodeStore,
 } from "../states/nodeStore.js";
 
 import type {
-  TopologyStore
+  TopologyStore,
 } from "../states/topologyStore.js";
 
 import type {
-  AlertService
+  AlertService,
 } from "../services/alertService.js";
 
 import type {
-  EnvironmentService
+  EnvironmentService,
 } from "../services/environmentService.js";
 
 import type {
-  NodeService
+  NodeService,
 } from "../services/nodeService.js";
 
 import type {
-  PoiService
+  PoiService,
 } from "../services/poiService.js";
 
 import type {
-  TopologyService
+  TopologyService,
 } from "../services/topologyService.js";
 
 import type {
-  VerificationService
+  VerificationService,
 } from "../services/verificationService.js";
 
 import {
-  getDashboard
+  getDashboard,
 } from "../services/dashboard.js";
 
+import {
+  isForeignKeyViolation,
+  isUniqueViolation,
+} from "../security/prismaErrors.js";
+
 export interface VerificationControl {
-  getStatus: () => unknown;
+  getStatus:
+    () => unknown;
 
   run: (
-    target: string
+    target: string,
   ) => Promise<unknown>;
 }
 
@@ -57,15 +63,16 @@ export function registerRoutes(
   verificationService: VerificationService,
   alertService: AlertService,
   verificationControl: VerificationControl,
-  syncInfrastructure: () => Promise<void>
+  syncInfrastructure:
+    () => Promise<void>,
 ) {
   app.get(
     "/api/nodes",
     (_request, response) => {
       response.json(
-        store.getAll()
+        store.getAll(),
       );
-    }
+    },
   );
 
   app.get(
@@ -74,66 +81,56 @@ export function registerRoutes(
       response.json(
         getDashboard(
           store,
-          topology
-        )
+          topology,
+        ),
       );
-    }
+    },
   );
 
   app.get(
     "/api/sensors",
     async (
       _request,
-      response
+      response,
     ) => {
       try {
         response.json(
-          await nodeService.list()
+          await nodeService.list(),
         );
       } catch (error) {
         console.error(
           "Erro ao listar sensores:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível listar os sensores."
+              "SENSOR_LIST_FAILED",
+
+            message:
+              "Não foi possível listar os sensores.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/sensors/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const node =
           await nodeService.get(
-            id
+            id,
           );
 
         if (!node) {
@@ -141,39 +138,45 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Sensor não encontrado."
+                "SENSOR_NOT_FOUND",
+
+              message:
+                "Sensor não encontrado.",
             });
         }
 
         response.json(
-          node
+          node,
         );
       } catch (error) {
         console.error(
           "Erro ao buscar sensor:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível buscar o sensor."
+              "SENSOR_READ_FAILED",
+
+            message:
+              "Não foi possível buscar o sensor.",
           });
       }
-    }
+    },
   );
 
   app.post(
     "/api/sensors",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const node =
           await nodeService.create(
-            request.body
+            request.body,
           );
 
         await syncInfrastructure();
@@ -181,72 +184,59 @@ export function registerRoutes(
         response
           .status(201)
           .json(
-            node
+            node,
           );
       } catch (error) {
-        const code =
-          (
-            error as {
-              code?: string;
-            }
-          ).code;
-
         if (
-          code ===
-          "P2002"
+          isUniqueViolation(
+            error,
+          )
         ) {
           return response
             .status(409)
             .json({
               error:
-                "Código ou MAC já cadastrado."
+                "SENSOR_CODE_OR_MAC_IN_USE",
+
+              message:
+                "Já existe um sensor com este código ou MAC.",
             });
         }
 
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Não foi possível cadastrar o sensor.";
+        console.error(
+          "Erro ao cadastrar sensor:",
+          error,
+        );
 
         response
           .status(400)
           .json({
             error:
-              message
+              "SENSOR_CREATE_FAILED",
+
+            message:
+              "Não foi possível cadastrar o sensor.",
           });
       }
-    }
+    },
   );
 
   app.put(
     "/api/sensors/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const node =
           await nodeService.update(
             id,
-            request.body
+            request.body,
           );
 
         if (!node) {
@@ -254,75 +244,70 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Sensor não encontrado."
+                "SENSOR_NOT_FOUND",
+
+              message:
+                "Sensor não encontrado.",
             });
         }
 
         await syncInfrastructure();
 
         response.json(
-          node
+          node,
         );
       } catch (error) {
-        const code =
-          (
-            error as {
-              code?: string;
-            }
-          ).code;
-
         if (
-          code ===
-          "P2002"
+          isUniqueViolation(
+            error,
+          )
         ) {
           return response
             .status(409)
             .json({
               error:
-                "Código ou MAC já cadastrado."
+                "SENSOR_CODE_OR_MAC_IN_USE",
+
+              message:
+                "Já existe um sensor com este código ou MAC.",
             });
         }
+
+        console.error(
+          "Erro ao atualizar sensor:",
+          error,
+        );
 
         response
           .status(400)
           .json({
             error:
-              "Não foi possível atualizar o sensor."
+              "SENSOR_UPDATE_FAILED",
+
+            message:
+              "Não foi possível atualizar o sensor.",
           });
       }
-    }
+    },
   );
 
   app.patch(
     "/api/sensors/:id/status",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const node =
           await nodeService.setStatus(
             id,
             request.body.active,
-            request.body.maintenance
+            request.body.maintenance,
           );
 
         if (!node) {
@@ -330,282 +315,263 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Sensor não encontrado."
+                "SENSOR_NOT_FOUND",
+
+              message:
+                "Sensor não encontrado.",
             });
         }
 
         await syncInfrastructure();
 
         response.json(
-          node
+          node,
         );
       } catch (error) {
         console.error(
           "Erro ao alterar sensor:",
-          error
+          error,
         );
 
         response
           .status(400)
           .json({
             error:
-              "Não foi possível alterar o estado do sensor."
+              "SENSOR_STATUS_FAILED",
+
+            message:
+              "Não foi possível alterar o estado do sensor.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/environments",
     async (
       _request,
-      response
+      response,
     ) => {
       try {
         response.json(
-          await environmentService.list()
+          await environmentService.list(),
         );
       } catch (error) {
         console.error(
           "Erro ao listar ambientes:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar os ambientes."
+              "ENVIRONMENT_LIST_FAILED",
+
+            message:
+              "Não foi possível carregar os ambientes.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/environments/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const environment =
           await environmentService.get(
-            id
+            id,
           );
 
-        if (
-          !environment
-        ) {
+        if (!environment) {
           return response
             .status(404)
             .json({
               error:
-                "Ambiente não encontrado."
+                "ENVIRONMENT_NOT_FOUND",
+
+              message:
+                "Ambiente não encontrado.",
             });
         }
 
         response.json(
-          environment
+          environment,
         );
       } catch (error) {
         console.error(
           "Erro ao carregar ambiente:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar o ambiente."
+              "ENVIRONMENT_READ_FAILED",
+
+            message:
+              "Não foi possível carregar o ambiente.",
           });
       }
-    }
+    },
   );
 
   app.post(
     "/api/environments",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const environment =
           await environmentService.create(
-            request.body
+            request.body,
           );
 
         response
           .status(201)
           .json(
-            environment
+            environment,
           );
       } catch (error) {
-        const code =
-          (
-            error as {
-              code?: string;
-            }
-          ).code;
-
         if (
-          code ===
-          "P2002"
+          isUniqueViolation(
+            error,
+          )
         ) {
           return response
             .status(409)
             .json({
               error:
-                "Código de ambiente já cadastrado."
+                "ENVIRONMENT_CODE_IN_USE",
+
+              message:
+                "Já existe um ambiente com este código.",
             });
         }
 
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Não foi possível cadastrar o ambiente.";
+        console.error(
+          "Erro ao cadastrar ambiente:",
+          error,
+        );
 
         response
           .status(400)
           .json({
             error:
-              message
+              "ENVIRONMENT_CREATE_FAILED",
+
+            message:
+              "Não foi possível cadastrar o ambiente.",
           });
       }
-    }
+    },
   );
 
   app.put(
     "/api/environments/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const environment =
           await environmentService.update(
             id,
-            request.body
+            request.body,
           );
 
-        if (
-          !environment
-        ) {
+        if (!environment) {
           return response
             .status(404)
             .json({
               error:
-                "Ambiente não encontrado."
+                "ENVIRONMENT_NOT_FOUND",
+
+              message:
+                "Ambiente não encontrado.",
             });
         }
 
         response.json(
-          environment
+          environment,
         );
       } catch (error) {
-        const code =
-          (
-            error as {
-              code?: string;
-            }
-          ).code;
-
         if (
-          code ===
-          "P2002"
+          isUniqueViolation(
+            error,
+          )
         ) {
           return response
             .status(409)
             .json({
               error:
-                "Código de ambiente já cadastrado."
+                "ENVIRONMENT_CODE_IN_USE",
+
+              message:
+                "Já existe um ambiente com este código.",
             });
         }
+
+        console.error(
+          "Erro ao atualizar ambiente:",
+          error,
+        );
 
         response
           .status(400)
           .json({
             error:
-              "Não foi possível atualizar o ambiente."
+              "ENVIRONMENT_UPDATE_FAILED",
+
+            message:
+              "Não foi possível atualizar o ambiente.",
           });
       }
-    }
+    },
   );
 
   app.delete(
     "/api/environments/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const environment =
           await environmentService.remove(
-            id
+            id,
           );
 
-        if (
-          !environment
-        ) {
+        if (!environment) {
           return response
             .status(404)
             .json({
               error:
-                "Ambiente não encontrado."
+                "ENVIRONMENT_NOT_FOUND",
+
+              message:
+                "Ambiente não encontrado.",
             });
         }
 
@@ -613,101 +579,130 @@ export function registerRoutes(
           .status(204)
           .send();
       } catch (error) {
+        if (
+          error instanceof
+            Error &&
+          error.message ===
+            "ENVIRONMENT_HAS_SENSORS"
+        ) {
+          return response
+            .status(409)
+            .json({
+              error:
+                "ENVIRONMENT_HAS_SENSORS",
+
+              message:
+                "O ambiente possui sensores vinculados e não pode ser excluído.",
+            });
+        }
+
+        if (
+          isForeignKeyViolation(
+            error,
+          )
+        ) {
+          return response
+            .status(409)
+            .json({
+              error:
+                "ENVIRONMENT_IN_USE",
+
+              message:
+                "O ambiente possui vínculos e não pode ser excluído.",
+            });
+        }
+
         console.error(
           "Erro ao remover ambiente:",
-          error
-        );
-
-        response
-          .status(400)
-          .json({
-            error:
-              "Não foi possível remover o ambiente."
-          });
-      }
-    }
-  );
-
-  app.get(
-    "/api/pois",
-    async (
-      _request,
-      response
-    ) => {
-      try {
-        response.json(
-          await poiService.list()
-        );
-      } catch (error) {
-        console.error(
-          "Erro ao listar pontos de interesse:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar os pontos de interesse."
+              "ENVIRONMENT_DELETE_FAILED",
+
+            message:
+              "Não foi possível remover o ambiente.",
           });
       }
-    }
+    },
+  );
+
+  app.get(
+    "/api/pois",
+    async (
+      _request,
+      response,
+    ) => {
+      try {
+        response.json(
+          await poiService.list(),
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao listar pontos de interesse:",
+          error,
+        );
+
+        response
+          .status(500)
+          .json({
+            error:
+              "POI_LIST_FAILED",
+
+            message:
+              "Não foi possível carregar os pontos de interesse.",
+          });
+      }
+    },
   );
 
   app.get(
     "/api/pois/operational",
     async (
       _request,
-      response
+      response,
     ) => {
       try {
         response.json(
-          await poiService.listOperational()
+          await poiService.listOperational(),
         );
       } catch (error) {
         console.error(
-          "Erro ao listar pontos de interesse operacionais:",
-          error
+          "Erro ao listar POIs operacionais:",
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar os pontos de interesse disponíveis."
+              "POI_LIST_FAILED",
+
+            message:
+              "Não foi possível carregar os pontos de interesse disponíveis.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/pois/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const poi =
           await poiService.get(
-            id
+            id,
           );
 
         if (!poi) {
@@ -715,110 +710,105 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Ponto de interesse não encontrado."
+                "POI_NOT_FOUND",
+
+              message:
+                "Ponto de interesse não encontrado.",
             });
         }
 
         response.json(
-          poi
+          poi,
         );
       } catch (error) {
         console.error(
-          "Erro ao carregar ponto de interesse:",
-          error
+          "Erro ao carregar POI:",
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar o ponto de interesse."
+              "POI_READ_FAILED",
+
+            message:
+              "Não foi possível carregar o ponto de interesse.",
           });
       }
-    }
+    },
   );
 
   app.post(
     "/api/pois",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const poi =
           await poiService.create(
-            request.body
+            request.body,
           );
 
         response
           .status(201)
           .json(
-            poi
+            poi,
           );
       } catch (error) {
-        const code =
-          (
-            error as {
-              code?: string;
-            }
-          ).code;
-
         if (
-          code ===
-          "P2002"
+          isUniqueViolation(
+            error,
+          )
         ) {
           return response
             .status(409)
             .json({
               error:
-                "Código do ponto de interesse já cadastrado."
+                "POI_CODE_IN_USE",
+
+              message:
+                "Já existe um ponto de interesse com este código.",
             });
         }
 
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Não foi possível cadastrar o ponto de interesse.";
+        console.error(
+          "Erro ao cadastrar POI:",
+          error,
+        );
 
         response
           .status(400)
           .json({
             error:
-              message
+              "POI_CREATE_FAILED",
+
+            message:
+              error instanceof Error
+                ? error.message
+                : "Não foi possível cadastrar o ponto de interesse.",
           });
       }
-    }
+    },
   );
 
   app.put(
     "/api/pois/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const poi =
           await poiService.update(
             id,
-            request.body
+            request.body,
           );
 
         if (!poi) {
@@ -826,76 +816,68 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Ponto de interesse não encontrado."
+                "POI_NOT_FOUND",
+
+              message:
+                "Ponto de interesse não encontrado.",
             });
         }
 
         response.json(
-          poi
+          poi,
         );
       } catch (error) {
-        const code =
-          (
-            error as {
-              code?: string;
-            }
-          ).code;
-
         if (
-          code ===
-          "P2002"
+          isUniqueViolation(
+            error,
+          )
         ) {
           return response
             .status(409)
             .json({
               error:
-                "Código do ponto de interesse já cadastrado."
+                "POI_CODE_IN_USE",
+
+              message:
+                "Já existe um ponto de interesse com este código.",
             });
         }
 
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Não foi possível atualizar o ponto de interesse.";
+        console.error(
+          "Erro ao atualizar POI:",
+          error,
+        );
 
         response
           .status(400)
           .json({
             error:
-              message
+              "POI_UPDATE_FAILED",
+
+            message:
+              error instanceof Error
+                ? error.message
+                : "Não foi possível atualizar o ponto de interesse.",
           });
       }
-    }
+    },
   );
 
   app.delete(
     "/api/pois/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const poi =
           await poiService.remove(
-            id
+            id,
           );
 
         if (!poi) {
@@ -903,7 +885,10 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Ponto de interesse não encontrado."
+                "POI_NOT_FOUND",
+
+              message:
+                "Ponto de interesse não encontrado.",
             });
         }
 
@@ -912,56 +897,62 @@ export function registerRoutes(
           .send();
       } catch (error) {
         console.error(
-          "Erro ao remover ponto de interesse:",
-          error
-        );
-
-        response
-          .status(400)
-          .json({
-            error:
-              "Não foi possível remover o ponto de interesse."
-          });
-      }
-    }
-  );
-
-  app.get(
-    "/api/topology",
-    async (
-      _request,
-      response
-    ) => {
-      try {
-        response.json(
-          await topologyService.list()
-        );
-      } catch (error) {
-        console.error(
-          "Erro ao listar topologia:",
-          error
+          "Erro ao remover POI:",
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar a topologia."
+              "POI_DELETE_FAILED",
+
+            message:
+              "Não foi possível remover o ponto de interesse.",
           });
       }
-    }
+    },
+  );
+
+  app.get(
+    "/api/topology",
+    async (
+      _request,
+      response,
+    ) => {
+      try {
+        response.json(
+          await topologyService.list(),
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao listar topologia:",
+          error,
+        );
+
+        response
+          .status(500)
+          .json({
+            error:
+              "TOPOLOGY_LIST_FAILED",
+
+            message:
+              "Não foi possível carregar a topologia.",
+          });
+      }
+    },
   );
 
   app.post(
     "/api/topology",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const edge =
           await topologyService.create(
-            request.body
+            request.body,
           );
 
         await syncInfrastructure();
@@ -969,7 +960,7 @@ export function registerRoutes(
         response
           .status(201)
           .json(
-            edge
+            edge,
           );
       } catch (error) {
         const message =
@@ -977,44 +968,47 @@ export function registerRoutes(
             ? error.message
             : "Não foi possível criar a conexão.";
 
+        if (
+          message ===
+          "Essa conexão já está cadastrada."
+        ) {
+          return response
+            .status(409)
+            .json({
+              error:
+                "EDGE_ALREADY_EXISTS",
+
+              message,
+            });
+        }
+
         response
           .status(400)
           .json({
             error:
-              message
+              "EDGE_CREATE_FAILED",
+
+            message,
           });
       }
-    }
+    },
   );
 
   app.delete(
     "/api/topology/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const edge =
           await topologyService.remove(
-            id
+            id,
           );
 
         if (!edge) {
@@ -1022,7 +1016,10 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Conexão não encontrada."
+                "EDGE_NOT_FOUND",
+
+              message:
+                "Conexão não encontrada.",
             });
         }
 
@@ -1034,48 +1031,54 @@ export function registerRoutes(
       } catch (error) {
         console.error(
           "Erro ao remover conexão:",
-          error
+          error,
         );
 
         response
-          .status(400)
+          .status(500)
           .json({
             error:
-              "Não foi possível remover a conexão."
+              "EDGE_DELETE_FAILED",
+
+            message:
+              "Não foi possível remover a conexão.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/verifications/status",
     (
       _request,
-      response
+      response,
     ) => {
       response.json(
-        verificationControl.getStatus()
+        verificationControl
+          .getStatus(),
       );
-    }
+    },
   );
 
   app.post(
     "/api/verifications/run",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const target =
-          typeof request.body.target ===
+          typeof request.body
+            .target ===
           "string"
-            ? request.body.target
+            ? request.body
+                .target
             : "ALL";
 
         response.json(
           await verificationControl.run(
-            target
-          )
+            target,
+          ),
         );
       } catch (error) {
         const code =
@@ -1098,7 +1101,9 @@ export function registerRoutes(
             .status(409)
             .json({
               error:
-                message
+                "VERIFICATION_BUSY",
+
+              message,
             });
         }
 
@@ -1110,7 +1115,9 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                message
+                "VERIFICATION_NODE_NOT_FOUND",
+
+              message,
             });
         }
 
@@ -1118,149 +1125,169 @@ export function registerRoutes(
           .status(400)
           .json({
             error:
-              message
+              "VERIFICATION_FAILED",
+
+            message,
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/verifications/history",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const requestedLimit =
           Number(
-            request.query.limit ??
-            50
+            request.query
+              .limit ??
+            50,
           );
 
         const limit =
           Number.isInteger(
-            requestedLimit
+            requestedLimit,
           )
-            ? requestedLimit
+            ? Math.min(
+                Math.max(
+                  requestedLimit,
+                  1,
+                ),
+                200,
+              )
             : 50;
 
         response.json(
-          await verificationService.listRecent(
-            limit
-          )
+          await verificationService
+            .listRecent(
+              limit,
+            ),
         );
       } catch (error) {
         console.error(
           "Erro ao carregar histórico:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar o histórico de verificações."
+              "VERIFICATION_HISTORY_FAILED",
+
+            message:
+              "Não foi possível carregar o histórico de verificações.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/verifications/history/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const verification =
           await verificationService.get(
-            id
+            id,
           );
 
-        if (
-          !verification
-        ) {
+        if (!verification) {
           return response
             .status(404)
             .json({
               error:
-                "Verificação não encontrada."
+                "VERIFICATION_NOT_FOUND",
+
+              message:
+                "Verificação não encontrada.",
             });
         }
 
         response.json(
-          verification
+          verification,
         );
       } catch (error) {
         console.error(
           "Erro ao carregar verificação:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar a verificação."
+              "VERIFICATION_READ_FAILED",
+
+            message:
+              "Não foi possível carregar a verificação.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/alerts",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const status =
-          typeof request.query.status ===
+          typeof request.query
+            .status ===
           "string"
-            ? request.query.status.toUpperCase()
+            ? request.query
+                .status
+                .toUpperCase()
             : undefined;
 
         const type =
-          typeof request.query.type ===
+          typeof request.query
+            .type ===
           "string"
-            ? request.query.type.toUpperCase()
+            ? request.query
+                .type
+                .toUpperCase()
             : undefined;
 
         const nodeCode =
-          typeof request.query.node ===
+          typeof request.query
+            .node ===
           "string"
-            ? request.query.node.toUpperCase()
+            ? request.query
+                .node
+                .toUpperCase()
             : undefined;
 
         const requestedLimit =
           Number(
-            request.query.limit ??
-            200
+            request.query
+              .limit ??
+            200,
           );
 
         const limit =
           Number.isInteger(
-            requestedLimit
+            requestedLimit,
           )
-            ? requestedLimit
+            ? Math.min(
+                Math.max(
+                  requestedLimit,
+                  1,
+                ),
+                500,
+              )
             : 200;
 
         response.json(
@@ -1268,53 +1295,43 @@ export function registerRoutes(
             status,
             type,
             nodeCode,
-            limit
-          })
+            limit,
+          }),
         );
       } catch (error) {
         console.error(
           "Erro ao carregar alertas:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar os alertas."
+              "ALERT_LIST_FAILED",
+
+            message:
+              "Não foi possível carregar os alertas.",
           });
       }
-    }
+    },
   );
 
   app.get(
     "/api/alerts/:id",
     async (
       request,
-      response
+      response,
     ) => {
       try {
         const id =
           Number(
-            request.params.id
+            request.params.id,
           );
-
-        if (
-          !Number.isInteger(
-            id
-          )
-        ) {
-          return response
-            .status(400)
-            .json({
-              error:
-                "ID inválido."
-            });
-        }
 
         const alert =
           await alertService.get(
-            id
+            id,
           );
 
         if (!alert) {
@@ -1322,26 +1339,32 @@ export function registerRoutes(
             .status(404)
             .json({
               error:
-                "Alerta não encontrado."
+                "ALERT_NOT_FOUND",
+
+              message:
+                "Alerta não encontrado.",
             });
         }
 
         response.json(
-          alert
+          alert,
         );
       } catch (error) {
         console.error(
           "Erro ao carregar alerta:",
-          error
+          error,
         );
 
         response
           .status(500)
           .json({
             error:
-              "Não foi possível carregar o alerta."
+              "ALERT_READ_FAILED",
+
+            message:
+              "Não foi possível carregar o alerta.",
           });
       }
-    }
+    },
   );
 }

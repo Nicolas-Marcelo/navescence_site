@@ -1,69 +1,86 @@
 import {
+  MapPin,
+  Pencil,
   Plus,
-  RefreshCw,
-  Search,
-  X,
 } from "lucide-react";
 
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
 
-import PoiCard from "./PoiCard";
-import PoiForm from "./PoiForm";
-
-import type {
-  PoiPayload,
-  PoiResponse,
-  PoiNode,
-} from "../../services/poiApi";
+import {
+  useForm,
+} from "react-hook-form";
 
 import {
-  atualizarPoi,
-  criarPoi,
-  listarPois,
-  listarSensoresPoi,
-  removerPoi,
-} from "../../services/poiApi";
+  zodResolver,
+} from "@hookform/resolvers/zod";
 
-import "./pois.css";
+import {
+  ConfirmDialog,
+  ReviewItem,
+} from "../../components/ui/ConfirmDialog";
 
-export default function PoisPage() {
-  const [
+import {
+  LoadingState,
+} from "../../components/ui/LoadingState";
+
+import {
+  Modal,
+} from "../../components/ui/Modal";
+
+import {
+  StatusBadge,
+} from "../../components/ui/StatusBadge";
+
+import {
+  useEnvironment,
+} from "../../context/EnvironmentContext";
+
+import {
+  usePois,
+} from "../../hooks/usePois";
+
+import {
+  useSensors,
+} from "../../hooks/useSensors";
+
+import {
+  poiSchema,
+  type PoiFormData,
+} from "../../schemas/poiSchemas";
+
+import {
+  createPoi,
+  deletePoi,
+  updatePoi,
+} from "../../services/poiService";
+
+import {
+  apiErrorMessage,
+} from "../../services/apiMessages";
+
+import type {
+  Poi,
+  PoiPayload,
+} from "../../types/poi";
+
+export function PoisPage() {
+  const {
     pois,
-    setPois,
-  ] =
-    useState<
-      PoiResponse[]
-    >([]);
-
-  const [
-    nodes,
-    setNodes,
-  ] =
-    useState<
-      PoiNode[]
-    >([]);
-
-  const [
-    search,
-    setSearch,
-  ] =
-    useState("");
-
-  const [
     loading,
-    setLoading,
-  ] =
-    useState(true);
-
-  const [
     error,
-    setError,
-  ] =
-    useState("");
+    reload,
+  } = usePois();
+
+  const {
+    sensors,
+  } = useSensors();
+
+  const {
+    selectedEnvironmentId,
+  } = useEnvironment();
 
   const [
     modalOpen,
@@ -72,360 +89,799 @@ export default function PoisPage() {
     useState(false);
 
   const [
-    editingPoi,
-    setEditingPoi,
+    confirmOpen,
+    setConfirmOpen,
+  ] =
+    useState(false);
+
+  const [
+    deleteOpen,
+    setDeleteOpen,
+  ] =
+    useState(false);
+
+  const [
+    editing,
+    setEditing,
   ] =
     useState<
-      PoiResponse | null
+      Poi | null
     >(null);
 
-  async function carregar() {
-    setLoading(true);
-    setError("");
+  const [
+    pendingData,
+    setPendingData,
+  ] =
+    useState<
+      PoiFormData | null
+    >(null);
 
-    try {
-      const [
-        poisResponse,
-        nodesResponse,
-      ] =
-        await Promise.all([
-          listarPois(),
-          listarSensoresPoi(),
-        ]);
+  const [
+    saving,
+    setSaving,
+  ] =
+    useState(false);
 
-      setPois(
-        poisResponse,
-      );
+  const [
+    deleting,
+    setDeleting,
+  ] =
+    useState(false);
 
-      setNodes(
-        nodesResponse,
-      );
-    } catch (
-      exception
-    ) {
-      setError(
-        exception instanceof
-          Error
-          ? exception.message
-          : "Não foi possível carregar os destinos.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [
+    serverError,
+    setServerError,
+  ] =
+    useState<
+      string | null
+    >(null);
 
-  useEffect(
-    () => {
-      void carregar();
+  const {
+    register,
+    handleSubmit,
+    reset,
+
+    formState: {
+      errors,
     },
-    [],
-  );
+  } =
+    useForm<
+      PoiFormData
+    >({
+      resolver:
+        zodResolver(
+          poiSchema,
+        ),
 
-  const filteredPois =
-    useMemo(
-      () => {
-        const query =
-          search
-            .trim()
-            .toLowerCase();
-
-        if (!query) {
-          return pois;
-        }
-
-        return pois.filter(
-          poi => {
-            const text =
-              [
-                poi.name,
-                poi.code,
-                poi.type,
-                poi.description ??
-                  "",
-                poi.node
-                  ?.code ??
-                  "",
-              ]
-                .join(
-                  " ",
-                )
-                .toLowerCase();
-
-            return text.includes(
-              query,
-            );
-          },
-        );
+      defaultValues: {
+        code: "",
+        name: "",
+        type: "",
+        nodeId: "",
+        description:
+          "",
+        active: true,
       },
-      [
-        pois,
-        search,
-      ],
-    );
+    });
 
-  function abrirCadastro() {
-    setEditingPoi(
-      null,
-    );
+  const visibleSensors =
+    useMemo(() => {
+      if (
+        selectedEnvironmentId ===
+        "ALL"
+      ) {
+        return sensors;
+      }
 
-    setModalOpen(
-      true,
-    );
-  }
-
-  function abrirEdicao(
-    poi:
-      PoiResponse,
-  ) {
-    setEditingPoi(
-      poi,
-    );
-
-    setModalOpen(
-      true,
-    );
-  }
-
-  function fecharModal() {
-    setModalOpen(
-      false,
-    );
-
-    setEditingPoi(
-      null,
-    );
-  }
-
-  async function salvar(
-    payload:
-      PoiPayload,
-  ) {
-    if (
-      editingPoi
-    ) {
-      await atualizarPoi(
-        editingPoi.id,
-        payload,
+      return sensors.filter(
+        sensor =>
+          sensor.environmentId ===
+          selectedEnvironmentId,
       );
-    } else {
-      await criarPoi(
-        payload,
+    }, [
+      sensors,
+      selectedEnvironmentId,
+    ]);
+
+  const visiblePois =
+    useMemo(() => {
+      if (
+        selectedEnvironmentId ===
+        "ALL"
+      ) {
+        return pois;
+      }
+
+      return pois.filter(
+        poi =>
+          poi.node
+            ?.environmentId ===
+          selectedEnvironmentId,
       );
+    }, [
+      pois,
+      selectedEnvironmentId,
+    ]);
+
+  function novo() {
+    setEditing(null);
+    setServerError(null);
+
+    reset({
+      code: "",
+      name: "",
+      type: "",
+      nodeId: "",
+      description:
+        "",
+      active: true,
+    });
+
+    setModalOpen(true);
+  }
+
+  function editar(
+    poi: Poi,
+  ) {
+    setEditing(poi);
+    setServerError(null);
+
+    reset({
+      code:
+        poi.code,
+
+      name:
+        poi.name,
+
+      type:
+        poi.type,
+
+      nodeId:
+        String(
+          poi.nodeId,
+        ),
+
+      description:
+        poi.description ??
+        "",
+
+      active:
+        poi.active,
+    });
+
+    setModalOpen(true);
+  }
+
+  function revisar(
+    data:
+      PoiFormData,
+  ) {
+    setPendingData(
+      data,
+    );
+
+    setModalOpen(false);
+    setConfirmOpen(true);
+  }
+
+  function sensorName(
+    value: string,
+  ) {
+    const sensor =
+      sensors.find(
+        item =>
+          item.id ===
+          Number(
+            value,
+          ),
+      );
+
+    if (!sensor) {
+      return "—";
     }
 
-    fecharModal();
-
-    await carregar();
+    return `${sensor.code}${
+      sensor.name
+        ? ` · ${sensor.name}`
+        : ""
+    }`;
   }
 
-  async function excluir(
-    poi:
-      PoiResponse,
-  ) {
-    const confirmed =
-      window.confirm(
-        `Deseja excluir "${poi.name}"?`,
-      );
-
-    if (!confirmed) {
+  async function confirmar() {
+    if (!pendingData) {
       return;
     }
 
-    try {
-      await removerPoi(
-        poi.id,
-      );
+    setSaving(true);
+    setServerError(null);
 
-      await carregar();
-    } catch (
-      exception
-    ) {
-      window.alert(
-        exception instanceof
-          Error
-          ? exception.message
-          : "Não foi possível excluir o POI.",
+    const payload:
+      PoiPayload = {
+      code:
+        pendingData
+          .code
+          .trim(),
+
+      name:
+        pendingData
+          .name
+          .trim(),
+
+      type:
+        pendingData.type,
+
+      nodeId:
+        Number(
+          pendingData
+            .nodeId,
+        ),
+
+      description:
+        pendingData
+          .description
+          .trim() ||
+        null,
+
+      active:
+        pendingData.active,
+    };
+
+    try {
+      if (editing) {
+        await updatePoi(
+          editing.id,
+          payload,
+        );
+      } else {
+        await createPoi(
+          payload,
+        );
+      }
+
+      setConfirmOpen(false);
+      setPendingData(null);
+
+      await reload();
+    } catch (error) {
+      setConfirmOpen(false);
+      setModalOpen(true);
+
+      setServerError(
+        apiErrorMessage(
+          error,
+          "Não foi possível salvar o ponto de interesse.",
+        ),
       );
+    } finally {
+      setSaving(false);
     }
   }
 
+  function pedirExclusao() {
+    if (!editing) {
+      return;
+    }
+
+    setServerError(null);
+    setDeleteOpen(true);
+  }
+
+  async function
+  confirmarExclusao() {
+    if (!editing) {
+      return;
+    }
+
+    setDeleting(true);
+    setServerError(null);
+
+    try {
+      await deletePoi(
+        editing.id,
+      );
+
+      setDeleteOpen(false);
+      setModalOpen(false);
+
+      await reload();
+    } catch (error) {
+      setDeleteOpen(false);
+      setModalOpen(true);
+
+      setServerError(
+        apiErrorMessage(
+          error,
+          "Não foi possível excluir o ponto de interesse.",
+        ),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <LoadingState message="Carregando pontos de interesse..." />
+    );
+  }
+
   return (
-    <div className="pois-page">
-      <div className="pois-page-header">
+    <>
+      <section className="page-heading">
         <div>
+          <span className="eyebrow">
+            Navegação
+          </span>
+
           <h1>
             Pontos de interesse
           </h1>
 
           <p>
-            Cadastre os destinos
-            utilizados pelo
-            NAVESCENCE e configure
-            como o usuário deve
-            acessar cada ambiente.
+            Destinos disponíveis para
+            navegação no ambiente.
           </p>
         </div>
 
         <button
           type="button"
-          className="poi-button-primary"
-          onClick={
-            abrirCadastro
-          }
+          className="button primary"
+          onClick={novo}
         >
-          <Plus
-            size={18}
-          />
+          <Plus size={17} />
 
-          Novo destino
+          Novo ponto
         </button>
-      </div>
-
-      <div className="pois-toolbar">
-        <div className="pois-search">
-          <Search
-            size={18}
-          />
-
-          <input
-            type="text"
-            value={
-              search
-            }
-            placeholder="Buscar destino..."
-            onChange={
-              event =>
-                setSearch(
-                  event
-                    .target
-                    .value,
-                )
-            }
-          />
-        </div>
-
-        <button
-          type="button"
-          className="poi-button-secondary"
-          onClick={() =>
-            void carregar()
-          }
-        >
-          <RefreshCw
-            size={17}
-          />
-
-          Atualizar
-        </button>
-      </div>
+      </section>
 
       {error && (
-        <div className="pois-error">
+        <div className="alert error">
           {error}
         </div>
       )}
 
-      {loading ? (
-        <div className="pois-loading">
-          Carregando destinos...
-        </div>
-      ) : filteredPois.length ===
-        0 ? (
-        <div className="pois-empty">
-          <MapEmpty />
+      <section className="simple-list">
+        {visiblePois.map(
+          poi => (
+            <article
+              key={poi.id}
+              className="simple-row"
+            >
+              <div className="simple-row-icon">
+                <MapPin
+                  size={19}
+                />
+              </div>
 
-          <strong>
-            Nenhum destino encontrado
-          </strong>
+              <div className="simple-row-main">
+                <strong>
+                  {poi.name}
+                </strong>
 
-          <p>
-            Cadastre o primeiro ponto
-            de interesse do ambiente.
-          </p>
-        </div>
-      ) : (
-        <div className="pois-grid">
-          {filteredPois.map(
-            poi => (
-              <PoiCard
-                key={
-                  poi.id
-                }
-                poi={
-                  poi
-                }
-                onEdit={
-                  abrirEdicao
-                }
-                onDelete={
-                  excluir
+                <span>
+                  {poi.code}
+                </span>
+              </div>
+
+              <div className="simple-row-meta">
+                <span>
+                  Sensor
+                </span>
+
+                <strong>
+                  {
+                    poi.node
+                      ?.code ??
+                    "—"
+                  }
+                </strong>
+              </div>
+
+              <StatusBadge
+                value={
+                  poi.active
+                    ? "ACTIVE"
+                    : "INACTIVE"
                 }
               />
-            ),
-          )}
-        </div>
-      )}
-
-      {modalOpen && (
-        <div className="poi-modal-overlay">
-          <div className="poi-modal">
-            <div className="poi-modal-header">
-              <div>
-                <h2>
-                  {editingPoi
-                    ? "Editar destino"
-                    : "Novo destino"}
-                </h2>
-
-                <p>
-                  Configure o POI e
-                  suas orientações de
-                  chegada.
-                </p>
-              </div>
 
               <button
                 type="button"
-                className="poi-modal-close"
-                onClick={
-                  fecharModal
+                className="row-action"
+                onClick={() =>
+                  editar(
+                    poi,
+                  )
                 }
               >
-                <X
-                  size={20}
+                <Pencil
+                  size={16}
                 />
+
+                Editar
               </button>
+            </article>
+          ),
+        )}
+      </section>
+
+      <Modal
+        open={modalOpen}
+        title={
+          editing
+            ? `Editar ${editing.name}`
+            : "Novo ponto de interesse"
+        }
+        onClose={() =>
+          setModalOpen(
+            false,
+          )
+        }
+      >
+        {serverError && (
+          <div className="alert error">
+            {serverError}
+          </div>
+        )}
+
+        <form
+          onSubmit={
+            handleSubmit(
+              revisar,
+            )
+          }
+          noValidate
+        >
+          <div className="form-grid">
+            <div className="field">
+              <label>
+                Código *
+              </label>
+
+              <input
+                maxLength={40}
+                placeholder="POI_RECEPCAO"
+                {...register(
+                  "code",
+                )}
+              />
+
+              {errors.code && (
+                <span className="field-error">
+                  {
+                    errors.code
+                      .message
+                  }
+                </span>
+              )}
             </div>
 
-            <div className="poi-modal-content">
-              <PoiForm
-                poi={
-                  editingPoi
-                }
-                nodes={
-                  nodes
-                }
-                onSubmit={
-                  salvar
-                }
-                onCancel={
-                  fecharModal
-                }
+            <div className="field">
+              <label>
+                Nome *
+              </label>
+
+              <input
+                maxLength={120}
+                placeholder="Recepção"
+                {...register(
+                  "name",
+                )}
               />
+
+              {errors.name && (
+                <span className="field-error">
+                  {
+                    errors.name
+                      .message
+                  }
+                </span>
+              )}
+            </div>
+
+            <div className="field">
+              <label>
+                Tipo *
+              </label>
+
+              <select
+                {...register(
+                  "type",
+                )}
+              >
+                <option value="">
+                  Selecione
+                </option>
+
+                <option value="ENTRADA">
+                  Entrada
+                </option>
+
+                <option value="SERVICO">
+                  Serviço
+                </option>
+
+                <option value="BANHEIRO">
+                  Banheiro
+                </option>
+
+                <option value="SALA">
+                  Sala
+                </option>
+
+                <option value="ACESSIBILIDADE">
+                  Acessibilidade
+                </option>
+
+                <option value="REFERENCIA">
+                  Referência
+                </option>
+
+                <option value="OUTRO">
+                  Outro
+                </option>
+              </select>
+
+              {errors.type && (
+                <span className="field-error">
+                  {
+                    errors.type
+                      .message
+                  }
+                </span>
+              )}
+            </div>
+
+            <div className="field">
+              <label>
+                Sensor relacionado *
+              </label>
+
+              <select
+                {...register(
+                  "nodeId",
+                )}
+              >
+                <option value="">
+                  Selecione
+                </option>
+
+                {visibleSensors.map(
+                  sensor => (
+                    <option
+                      key={
+                        sensor.id
+                      }
+                      value={
+                        sensor.id
+                      }
+                    >
+                      {
+                        sensor.code
+                      }
+
+                      {sensor.name
+                        ? ` · ${sensor.name}`
+                        : ""}
+                    </option>
+                  ),
+                )}
+              </select>
+
+              {errors.nodeId && (
+                <span className="field-error">
+                  {
+                    errors
+                      .nodeId
+                      .message
+                  }
+                </span>
+              )}
+            </div>
+
+            <div className="field field-full">
+              <label>
+                Descrição
+              </label>
+
+              <textarea
+                rows={4}
+                maxLength={255}
+                {...register(
+                  "description",
+                )}
+              />
+
+              {errors
+                .description && (
+                <span className="field-error">
+                  {
+                    errors
+                      .description
+                      .message
+                  }
+                </span>
+              )}
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-function MapEmpty() {
-  return (
-    <div className="pois-empty-icon">
-      <Search
-        size={26}
-      />
-    </div>
+          <div className="checkbox-group">
+            <label>
+              <input
+                type="checkbox"
+                {...register(
+                  "active",
+                )}
+              />
+
+              Ponto disponível para
+              navegação
+            </label>
+          </div>
+
+          <footer className="form-actions split">
+            <div>
+              {editing && (
+                <button
+                  type="button"
+                  className="button danger-button"
+                  onClick={
+                    pedirExclusao
+                  }
+                >
+                  Excluir
+                </button>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() =>
+                  setModalOpen(
+                    false,
+                  )
+                }
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                className="button primary"
+              >
+                Revisar
+              </button>
+            </div>
+          </footer>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={
+          editing
+            ? "Confirmar alteração"
+            : "Confirmar novo ponto"
+        }
+        description="Confira as informações antes de continuar."
+        loading={saving}
+        confirmLabel={
+          editing
+            ? "Confirmar alteração"
+            : "Criar ponto"
+        }
+        cancelLabel="Voltar e editar"
+        onCancel={() => {
+          setConfirmOpen(false);
+          setModalOpen(true);
+        }}
+        onConfirm={() =>
+          void confirmar()
+        }
+      >
+        {pendingData && (
+          <div className="review-grid">
+            <ReviewItem
+              label="Código"
+              value={
+                pendingData
+                  .code
+              }
+            />
+
+            <ReviewItem
+              label="Nome"
+              value={
+                pendingData
+                  .name
+              }
+            />
+
+            <ReviewItem
+              label="Tipo"
+              value={
+                pendingData
+                  .type
+              }
+            />
+
+            <ReviewItem
+              label="Sensor"
+              value={
+                sensorName(
+                  pendingData
+                    .nodeId,
+                )
+              }
+            />
+
+            <ReviewItem
+              label="Descrição"
+              value={
+                pendingData
+                  .description ||
+                "Sem descrição"
+              }
+            />
+
+            <ReviewItem
+              label="Disponível"
+              value={
+                pendingData
+                  .active
+                  ? "Sim"
+                  : "Não"
+              }
+            />
+          </div>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Excluir ponto de interesse"
+        description="Esta ação não poderá ser desfeita."
+        confirmLabel="Excluir ponto"
+        cancelLabel="Cancelar"
+        loading={deleting}
+        destructive
+        onCancel={() => {
+          setDeleteOpen(false);
+          setModalOpen(true);
+        }}
+        onConfirm={() =>
+          void confirmarExclusao()
+        }
+      >
+        {editing && (
+          <div className="review-grid">
+            <ReviewItem
+              label="Ponto"
+              value={
+                editing.name
+              }
+            />
+
+            <ReviewItem
+              label="Código"
+              value={
+                editing.code
+              }
+            />
+
+            <ReviewItem
+              label="Sensor"
+              value={
+                editing.node
+                  ?.code ??
+                "—"
+              }
+            />
+          </div>
+        )}
+      </ConfirmDialog>
+    </>
   );
 }

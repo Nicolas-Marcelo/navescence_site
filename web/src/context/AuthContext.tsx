@@ -10,6 +10,7 @@ import {
 import {
   apiRequest,
   getToken,
+  onAuthExpired,
   removeToken,
   saveToken,
 } from "../services/api";
@@ -28,14 +29,18 @@ interface AuthContextValue {
   login: (
     email: string,
     password: string,
-  ) => Promise<void>;
+  ) => Promise<AuthUser>;
 
   logout: () => void;
-  refreshUser: () => Promise<void>;
+
+  refreshUser:
+    () => Promise<void>;
 }
 
 const AuthContext =
-  createContext<AuthContextValue | null>(null);
+  createContext<
+    AuthContextValue | null
+  >(null);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -44,68 +49,126 @@ interface AuthProviderProps {
 export function AuthProvider({
   children,
 }: AuthProviderProps) {
-  const [user, setUser] =
-    useState<AuthUser | null>(null);
+  const [
+    user,
+    setUser,
+  ] =
+    useState<
+      AuthUser | null
+    >(null);
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
-  const refreshUser =
-    useCallback(async () => {
-      const token = getToken();
-
-      if (!token) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response =
-          await apiRequest<MeResponse>(
-            "/api/auth/me",
-            {
-              authenticated: true,
-            },
-          );
-
-        setUser(response.user);
-      } catch {
-        removeToken();
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+  const logout =
+    useCallback(() => {
+      removeToken();
+      setUser(null);
     }, []);
 
-  useEffect(() => {
-    void refreshUser();
-  }, [refreshUser]);
+  const refreshUser =
+    useCallback(
+      async () => {
+        const token =
+          getToken();
+
+        if (!token) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const response =
+            await apiRequest<
+              MeResponse
+            >(
+              "/api/auth/me",
+              {
+                authenticated:
+                  true,
+              },
+            );
+
+          setUser(
+            response.user,
+          );
+        } catch {
+          removeToken();
+          setUser(null);
+        } finally {
+          setLoading(false);
+        }
+      },
+      [],
+    );
+
+  useEffect(
+    () => {
+      void refreshUser();
+    },
+    [
+      refreshUser,
+    ],
+  );
+
+  useEffect(
+    () => {
+      const unsubscribe =
+        onAuthExpired(
+          () => {
+            setUser(null);
+
+            if (
+              window.location
+                .pathname !==
+              "/login"
+            ) {
+              window.location
+                .assign(
+                  "/login",
+                );
+            }
+          },
+        );
+
+      return unsubscribe;
+    },
+    [],
+  );
 
   async function login(
     email: string,
     password: string,
-  ) {
+  ): Promise<AuthUser> {
     const response =
-      await apiRequest<LoginResponse>(
+      await apiRequest<
+        LoginResponse
+      >(
         "/api/auth/login",
         {
           method: "POST",
 
-          body: JSON.stringify({
-            email,
-            password,
-          }),
+          body:
+            JSON.stringify({
+              email,
+              password,
+            }),
         },
       );
 
-    saveToken(response.token);
-    setUser(response.user);
-  }
+    saveToken(
+      response.token,
+    );
 
-  function logout() {
-    removeToken();
-    setUser(null);
+    setUser(
+      response.user,
+    );
+
+    return response.user;
   }
 
   return (
@@ -113,7 +176,12 @@ export function AuthProvider({
       value={{
         user,
         loading,
-        authenticated: Boolean(user),
+
+        authenticated:
+          Boolean(
+            user,
+          ),
+
         login,
         logout,
         refreshUser,
@@ -126,7 +194,9 @@ export function AuthProvider({
 
 export function useAuth() {
   const context =
-    useContext(AuthContext);
+    useContext(
+      AuthContext,
+    );
 
   if (!context) {
     throw new Error(

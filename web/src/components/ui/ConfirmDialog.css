@@ -1,0 +1,430 @@
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 2000;
+
+  padding: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    rgba(
+      5,
+      25,
+      36,
+      0.58
+    );
+
+  backdrop-filter:
+    blur(4px);
+}
+
+.confirm-card {
+  width:
+    min(
+      560px,
+      100%
+    );
+
+  max-height:
+    calc(
+      100vh - 48px
+    );
+
+  padding: 25px;
+
+  overflow-y: auto;
+
+  background:
+    #ffffff;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    18px;
+
+  box-shadow:
+    0 30px 90px
+    rgba(
+      5,
+      26,
+      38,
+      0.28
+    );
+
+  animation:
+    confirm-card-in
+    140ms ease-out;
+}
+
+.confirm-card-destructive {
+  border-top:
+    4px solid
+    var(--danger);
+}
+
+.confirm-card-header {
+  display: flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap: 18px;
+}
+
+.confirm-card-heading {
+  min-width: 0;
+
+  display: flex;
+
+  align-items:
+    flex-start;
+
+  gap: 13px;
+}
+
+.confirm-card-heading > div:last-child {
+  min-width: 0;
+}
+
+.confirm-card-header h2 {
+  margin:
+    5px 0 0;
+
+  color:
+    var(--primary-deep);
+
+  font-size:
+    1.3rem;
+
+  line-height:
+    1.25;
+
+  letter-spacing:
+    -0.025em;
+}
+
+.confirm-eyebrow {
+  display: block;
+
+  color:
+    var(--muted);
+
+  font-size:
+    0.64rem;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    0.11em;
+
+  text-transform:
+    uppercase;
+}
+
+.confirm-eyebrow.danger {
+  color:
+    var(--danger);
+}
+
+.confirm-danger-icon {
+  width: 42px;
+  height: 42px;
+
+  flex:
+    0 0 auto;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  background:
+    var(--danger-bg);
+
+  border-radius:
+    11px;
+
+  color:
+    var(--danger);
+}
+
+.confirm-close {
+  width: 36px;
+  height: 36px;
+
+  flex:
+    0 0 auto;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+
+  border-radius:
+    9px;
+
+  background:
+    var(--background);
+
+  color:
+    var(--muted);
+
+  cursor: pointer;
+}
+
+.confirm-close:hover {
+  background:
+    var(--background-deep);
+
+  color:
+    var(--text);
+}
+
+.confirm-close:disabled {
+  opacity: 0.5;
+
+  cursor: wait;
+}
+
+.confirm-description {
+  margin:
+    18px 0 0;
+
+  color:
+    var(--muted);
+
+  font-size:
+    0.82rem;
+
+  line-height:
+    1.6;
+}
+
+.confirm-content {
+  margin-top:
+    20px;
+}
+
+.review-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    var(--border);
+
+  border-radius:
+    12px;
+
+  background:
+    var(--background);
+}
+
+.confirm-review-item {
+  min-width: 0;
+
+  min-height:
+    72px;
+
+  padding:
+    13px 15px;
+
+  display: flex;
+
+  flex-direction:
+    column;
+
+  justify-content:
+    center;
+
+  border-right:
+    1px solid
+    var(--border);
+
+  border-bottom:
+    1px solid
+    var(--border);
+}
+
+.confirm-review-item:nth-child(
+  2n
+) {
+  border-right: 0;
+}
+
+.confirm-review-item:nth-last-child(
+  -n + 2
+) {
+  border-bottom: 0;
+}
+
+.confirm-review-item span {
+  color:
+    var(--muted);
+
+  font-size:
+    0.62rem;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    0.06em;
+
+  text-transform:
+    uppercase;
+}
+
+.confirm-review-item strong {
+  margin-top:
+    5px;
+
+  overflow-wrap:
+    anywhere;
+
+  color:
+    var(--text);
+
+  font-size:
+    0.81rem;
+
+  font-weight:
+    700;
+}
+
+.confirm-actions {
+  margin-top:
+    22px;
+
+  padding-top:
+    18px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content:
+    flex-end;
+
+  gap: 9px;
+
+  border-top:
+    1px solid
+    var(--border);
+}
+
+.confirm-danger-button {
+  background:
+    var(--danger);
+
+  color:
+    #ffffff;
+
+  border-color:
+    var(--danger);
+}
+
+.confirm-danger-button:hover {
+  background:
+    #982f37;
+
+  border-color:
+    #982f37;
+}
+
+@keyframes confirm-card-in {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(5px)
+      scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+@media (
+  max-width: 600px
+) {
+  .confirm-overlay {
+    padding: 15px;
+  }
+
+  .confirm-card {
+    padding: 20px;
+  }
+
+  .review-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .confirm-review-item,
+  .confirm-review-item:nth-child(
+    2n
+  ),
+  .confirm-review-item:nth-last-child(
+    -n + 2
+  ) {
+    border-right: 0;
+
+    border-bottom:
+      1px solid
+      var(--border);
+  }
+
+  .confirm-review-item:last-child {
+    border-bottom: 0;
+  }
+
+  .confirm-actions {
+    align-items:
+      stretch;
+
+    flex-direction:
+      column-reverse;
+  }
+
+  .confirm-actions
+  .button {
+    width: 100%;
+  }
+}
+
+@media (
+  prefers-reduced-motion:
+    reduce
+) {
+  .confirm-card {
+    animation: none;
+  }
+}

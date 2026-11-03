@@ -5,7 +5,6 @@ import {
 import {
   Link,
   Navigate,
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 
@@ -24,97 +23,99 @@ import {
 
 import {
   ApiError,
-  apiRequest,
 } from "../../services/api";
 
-import { useAuth } from "../../context/AuthContext";
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 export function LoginPage() {
   const {
     login,
     authenticated,
+    user,
   } = useAuth();
 
   const navigate =
     useNavigate();
 
-  const location =
-    useLocation();
-
-  const [serverError, setServerError] =
-    useState<string | null>(null);
-
-  const [showResend, setShowResend] =
-    useState(false);
-
-  const [resendMessage, setResendMessage] =
-    useState<string | null>(null);
+  const [
+    serverError,
+    setServerError,
+  ] =
+    useState<
+      string | null
+    >(null);
 
   const {
     register,
     handleSubmit,
-    getValues,
+
     formState: {
       errors,
       isSubmitting,
     },
-  } = useForm<LoginFormData>({
-    resolver:
-      zodResolver(loginSchema),
+  } =
+    useForm<
+      LoginFormData
+    >({
+      resolver:
+        zodResolver(
+          loginSchema,
+        ),
 
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+      defaultValues: {
+        email: "",
+        password: "",
+      },
+    });
 
-  if (authenticated) {
+  if (
+    authenticated &&
+    user
+  ) {
     return (
       <Navigate
-        to="/conta"
+        to={
+          user.role ===
+          "ADMIN"
+            ? "/admin"
+            : "/conta"
+        }
         replace
       />
     );
   }
 
   async function onSubmit(
-    data: LoginFormData,
+    data:
+      LoginFormData,
   ) {
     setServerError(null);
-    setShowResend(false);
-    setResendMessage(null);
 
     try {
-      await login(
-        data.email.trim(),
-        data.password,
-      );
+      const loggedUser =
+        await login(
+          data.email
+            .trim(),
 
-      const state =
-        location.state as
-          | { from?: string }
-          | null;
+          data.password,
+        );
 
       navigate(
-        state?.from ?? "/conta",
+        loggedUser.role ===
+          "ADMIN"
+          ? "/admin"
+          : "/conta",
         {
           replace: true,
         },
       );
     } catch (error) {
-      if (error instanceof ApiError) {
-        if (
-          error.code ===
-          "EMAIL_NOT_VERIFIED"
-        ) {
-          setServerError(
-            "Confirme seu e-mail antes de entrar.",
-          );
-
-          setShowResend(true);
-          return;
-        }
-
+      if (
+        error instanceof
+        ApiError
+      ) {
         if (
           error.code ===
           "INVALID_CREDENTIALS"
@@ -136,44 +137,39 @@ export function LoginPage() {
 
           return;
         }
+
+        if (
+          error.code ===
+          "TOO_MANY_ATTEMPTS"
+        ) {
+          setServerError(
+            "Muitas tentativas de acesso. Aguarde alguns minutos.",
+          );
+
+          return;
+        }
+
+        if (
+          error.code ===
+          "NETWORK_ERROR"
+        ) {
+          setServerError(
+            "Não foi possível conectar ao servidor.",
+          );
+
+          return;
+        }
+
+        setServerError(
+          error.message ||
+          "Não foi possível realizar o login.",
+        );
+
+        return;
       }
 
       setServerError(
         "Não foi possível realizar o login.",
-      );
-    }
-  }
-
-  async function reenviarVerificacao() {
-    const email =
-      getValues("email").trim();
-
-    if (!email) {
-      setResendMessage(
-        "Informe seu e-mail primeiro.",
-      );
-
-      return;
-    }
-
-    try {
-      await apiRequest(
-        "/api/auth/resend-verification",
-        {
-          method: "POST",
-
-          body: JSON.stringify({
-            email,
-          }),
-        },
-      );
-
-      setResendMessage(
-        "Se o e-mail estiver cadastrado, uma nova verificação foi gerada.",
-      );
-    } catch {
-      setResendMessage(
-        "Não foi possível solicitar uma nova verificação.",
       );
     }
   }
@@ -192,7 +188,9 @@ export function LoginPage() {
             N
           </span>
 
-          <span>NAVESCENCE</span>
+          <span>
+            NAVESCENCE
+          </span>
         </Link>
 
         <div className="auth-heading">
@@ -200,11 +198,13 @@ export function LoginPage() {
             Acesso
           </span>
 
-          <h1>Entre na sua conta</h1>
+          <h1>
+            Entre na sua conta
+          </h1>
 
           <p>
-            Utilize seu e-mail e senha
-            para continuar.
+            Utilize seu e-mail e
+            senha para continuar.
           </p>
         </div>
 
@@ -219,35 +219,50 @@ export function LoginPage() {
 
         <form
           onSubmit={
-            handleSubmit(onSubmit)
+            handleSubmit(
+              onSubmit,
+            )
           }
           noValidate
         >
           <div className="field">
-            <label htmlFor="email">
+            <label
+              htmlFor="email"
+            >
               E-mail
             </label>
 
             <input
               id="email"
               type="email"
+              inputMode="email"
               autoComplete="email"
+              maxLength={180}
               placeholder="nome@exemplo.com"
               aria-invalid={
-                Boolean(errors.email)
+                Boolean(
+                  errors.email,
+                )
               }
-              {...register("email")}
+              {...register(
+                "email",
+              )}
             />
 
             {errors.email && (
               <span className="field-error">
-                {errors.email.message}
+                {
+                  errors.email
+                    .message
+                }
               </span>
             )}
           </div>
 
           <div className="field">
-            <label htmlFor="password">
+            <label
+              htmlFor="password"
+            >
               Senha
             </label>
 
@@ -255,15 +270,23 @@ export function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
+              maxLength={72}
               aria-invalid={
-                Boolean(errors.password)
+                Boolean(
+                  errors.password,
+                )
               }
-              {...register("password")}
+              {...register(
+                "password",
+              )}
             />
 
             {errors.password && (
               <span className="field-error">
-                {errors.password.message}
+                {
+                  errors.password
+                    .message
+                }
               </span>
             )}
           </div>
@@ -271,7 +294,9 @@ export function LoginPage() {
           <button
             className="button primary full"
             type="submit"
-            disabled={isSubmitting}
+            disabled={
+              isSubmitting
+            }
           >
             {isSubmitting
               ? "Entrando..."
@@ -279,27 +304,10 @@ export function LoginPage() {
           </button>
         </form>
 
-        {showResend && (
-          <div className="resend-box">
-            <button
-              className="text-button"
-              type="button"
-              onClick={
-                reenviarVerificacao
-              }
-            >
-              Reenviar e-mail de verificação
-            </button>
-
-            {resendMessage && (
-              <p>{resendMessage}</p>
-            )}
-          </div>
-        )}
-
         <footer className="auth-footer">
           <span>
-            Ainda não possui uma conta?
+            Ainda não possui uma
+            conta?
           </span>
 
           <Link to="/cadastro">

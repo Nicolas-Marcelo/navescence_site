@@ -44,6 +44,10 @@ import {
   updateEnvironment,
 } from "../../services/environmentService";
 
+import {
+  apiErrorMessage,
+} from "../../services/apiMessages";
+
 import type {
   Environment,
   EnvironmentPayload,
@@ -56,49 +60,77 @@ export function AmbientesPage() {
     reloadEnvironments,
   } = useEnvironment();
 
-  const [modalOpen, setModalOpen] =
-    useState(false);
+  const [
+    modalOpen,
+    setModalOpen,
+  ] = useState(false);
 
-  const [confirmOpen, setConfirmOpen] =
-    useState(false);
+  const [
+    confirmOpen,
+    setConfirmOpen,
+  ] = useState(false);
 
-  const [editing, setEditing] =
-    useState<Environment | null>(
-      null,
-    );
+  const [
+    deleteOpen,
+    setDeleteOpen,
+  ] = useState(false);
 
-  const [pendingData, setPendingData] =
-    useState<EnvironmentFormData | null>(
-      null,
-    );
+  const [
+    editing,
+    setEditing,
+  ] = useState<
+    Environment | null
+  >(null);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [
+    pendingData,
+    setPendingData,
+  ] = useState<
+    EnvironmentFormData | null
+  >(null);
 
-  const [serverError, setServerError] =
-    useState<string | null>(
-      null,
-    );
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+
+  const [
+    serverError,
+    setServerError,
+  ] = useState<
+    string | null
+  >(null);
 
   const {
     register,
     handleSubmit,
     reset,
+
     formState: {
       errors,
     },
-  } = useForm<EnvironmentFormData>({
-    resolver:
-      zodResolver(environmentSchema),
+  } =
+    useForm<
+      EnvironmentFormData
+    >({
+      resolver:
+        zodResolver(
+          environmentSchema,
+        ),
 
-    defaultValues: {
-      code: "",
-      name: "",
-      type: "",
-      floor: "Térreo",
-      description: "",
-    },
-  });
+      defaultValues: {
+        code: "",
+        name: "",
+        type: "",
+        floor: "",
+        description: "",
+      },
+    });
 
   function novo() {
     setEditing(null);
@@ -108,7 +140,7 @@ export function AmbientesPage() {
       code: "",
       name: "",
       type: "",
-      floor: "Térreo",
+      floor: "",
       description: "",
     });
 
@@ -116,19 +148,30 @@ export function AmbientesPage() {
   }
 
   function editar(
-    environment: Environment,
+    environment:
+      Environment,
   ) {
-    setEditing(environment);
+    setEditing(
+      environment,
+    );
+
     setServerError(null);
 
     reset({
-      code: environment.code,
-      name: environment.name,
+      code:
+        environment.code,
+
+      name:
+        environment.name,
+
       type:
-        environment.type ?? "",
+        environment.type ??
+        "",
+
       floor:
         environment.floor ??
-        "Térreo",
+        "",
+
       description:
         environment.description ??
         "",
@@ -138,30 +181,49 @@ export function AmbientesPage() {
   }
 
   function revisar(
-    data: EnvironmentFormData,
+    data:
+      EnvironmentFormData,
   ) {
     setPendingData(data);
+
     setModalOpen(false);
     setConfirmOpen(true);
   }
 
   async function confirmar() {
-    if (!pendingData) return;
+    if (!pendingData) {
+      return;
+    }
 
     setSaving(true);
+    setServerError(null);
 
-    const payload: EnvironmentPayload = {
+    const payload:
+      EnvironmentPayload = {
       code:
-        pendingData.code.trim(),
+        pendingData
+          .code
+          .trim()
+          .toUpperCase(),
+
       name:
-        pendingData.name.trim(),
+        pendingData
+          .name
+          .trim(),
+
       type:
         pendingData.type ||
         null,
+
       floor:
-        pendingData.floor.trim(),
+        pendingData
+          .floor
+          .trim(),
+
       description:
-        pendingData.description.trim() ||
+        pendingData
+          .description
+          .trim() ||
         null,
     };
 
@@ -182,41 +244,59 @@ export function AmbientesPage() {
 
       await reloadEnvironments();
     } catch (error) {
-      console.error(error);
-
       setConfirmOpen(false);
       setModalOpen(true);
 
       setServerError(
-        "Não foi possível salvar o ambiente.",
+        apiErrorMessage(
+          error,
+          "Não foi possível salvar o ambiente.",
+        ),
       );
     } finally {
       setSaving(false);
     }
   }
 
-  async function excluir() {
-    if (!editing) return;
+  function pedirExclusao() {
+    if (!editing) {
+      return;
+    }
 
-    const confirmed =
-      window.confirm(
-        `Excluir o ambiente "${editing.name}"?`,
-      );
+    setServerError(null);
+    setDeleteOpen(true);
+  }
 
-    if (!confirmed) return;
+  async function confirmarExclusao() {
+    if (!editing) {
+      return;
+    }
+
+    setDeleting(true);
+    setServerError(null);
 
     try {
       await deleteEnvironment(
         editing.id,
       );
 
+      setDeleteOpen(false);
       setModalOpen(false);
+      setEditing(null);
 
       await reloadEnvironments();
-    } catch {
+    } catch (error) {
+      setDeleteOpen(false);
+      setModalOpen(true);
+
       setServerError(
-        "Não foi possível excluir o ambiente. Verifique se existem sensores vinculados.",
+        apiErrorMessage(
+          error,
+          "Não foi possível excluir o ambiente.",
+        ),
       );
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -234,7 +314,9 @@ export function AmbientesPage() {
             Estrutura física
           </span>
 
-          <h1>Ambientes</h1>
+          <h1>
+            Ambientes
+          </h1>
 
           <p>
             Espaços atendidos pela
@@ -248,6 +330,7 @@ export function AmbientesPage() {
           onClick={novo}
         >
           <Plus size={17} />
+
           Novo ambiente
         </button>
       </section>
@@ -256,7 +339,9 @@ export function AmbientesPage() {
         {environments.map(
           environment => (
             <article
-              key={environment.id}
+              key={
+                environment.id
+              }
               className="simple-row"
             >
               <div className="simple-row-icon">
@@ -267,11 +352,15 @@ export function AmbientesPage() {
 
               <div className="simple-row-main">
                 <strong>
-                  {environment.name}
+                  {
+                    environment.name
+                  }
                 </strong>
 
                 <span>
-                  {environment.code}
+                  {
+                    environment.code
+                  }
                 </span>
               </div>
 
@@ -281,8 +370,10 @@ export function AmbientesPage() {
                 </span>
 
                 <strong>
-                  {environment.floor ??
-                    "—"}
+                  {
+                    environment.floor ??
+                    "—"
+                  }
                 </strong>
               </div>
 
@@ -292,8 +383,12 @@ export function AmbientesPage() {
                 </span>
 
                 <strong>
-                  {environment._count
-                    ?.nodes ?? 0}
+                  {
+                    environment
+                      ._count
+                      ?.nodes ??
+                    0
+                  }
                 </strong>
               </div>
 
@@ -301,10 +396,15 @@ export function AmbientesPage() {
                 type="button"
                 className="row-action"
                 onClick={() =>
-                  editar(environment)
+                  editar(
+                    environment,
+                  )
                 }
               >
-                <Pencil size={16} />
+                <Pencil
+                  size={16}
+                />
+
                 Editar
               </button>
             </article>
@@ -331,8 +431,11 @@ export function AmbientesPage() {
 
         <form
           onSubmit={
-            handleSubmit(revisar)
+            handleSubmit(
+              revisar,
+            )
           }
+          autoComplete="off"
           noValidate
         >
           <div className="form-grid">
@@ -342,13 +445,20 @@ export function AmbientesPage() {
               </label>
 
               <input
-                placeholder="IADB_TERREO"
-                {...register("code")}
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={30}
+                {...register(
+                  "code",
+                )}
               />
 
               {errors.code && (
                 <span className="field-error">
-                  {errors.code.message}
+                  {
+                    errors.code
+                      .message
+                  }
                 </span>
               )}
             </div>
@@ -359,25 +469,36 @@ export function AmbientesPage() {
               </label>
 
               <input
-                placeholder="IADB - Térreo"
-                {...register("name")}
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={100}
+                {...register(
+                  "name",
+                )}
               />
 
               {errors.name && (
                 <span className="field-error">
-                  {errors.name.message}
+                  {
+                    errors.name
+                      .message
+                  }
                 </span>
               )}
             </div>
 
             <div className="field">
-              <label>Tipo</label>
+              <label>
+                Tipo
+              </label>
 
               <select
-                {...register("type")}
+                {...register(
+                  "type",
+                )}
               >
                 <option value="">
-                  Não definido
+                  Selecione
                 </option>
 
                 <option value="CORREDOR">
@@ -412,13 +533,20 @@ export function AmbientesPage() {
               </label>
 
               <input
-                placeholder="Térreo"
-                {...register("floor")}
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={40}
+                {...register(
+                  "floor",
+                )}
               />
 
               {errors.floor && (
                 <span className="field-error">
-                  {errors.floor.message}
+                  {
+                    errors.floor
+                      .message
+                  }
                 </span>
               )}
             </div>
@@ -430,16 +558,18 @@ export function AmbientesPage() {
 
               <textarea
                 rows={4}
-                placeholder="Descrição resumida do ambiente."
+                maxLength={200}
                 {...register(
                   "description",
                 )}
               />
 
-              {errors.description && (
+              {errors
+                .description && (
                 <span className="field-error">
                   {
-                    errors.description
+                    errors
+                      .description
                       .message
                   }
                 </span>
@@ -453,8 +583,8 @@ export function AmbientesPage() {
                 <button
                   type="button"
                   className="button danger-button"
-                  onClick={() =>
-                    void excluir()
+                  onClick={
+                    pedirExclusao
                   }
                 >
                   Excluir
@@ -493,13 +623,14 @@ export function AmbientesPage() {
             ? "Confirmar alteração"
             : "Confirmar novo ambiente"
         }
-        description="Confira os dados que serão gravados."
+        description="Confira as informações antes de continuar."
         loading={saving}
         confirmLabel={
           editing
             ? "Confirmar alteração"
             : "Criar ambiente"
         }
+        cancelLabel="Voltar e editar"
         onCancel={() => {
           setConfirmOpen(false);
           setModalOpen(true);
@@ -538,12 +669,39 @@ export function AmbientesPage() {
                 pendingData.floor
               }
             />
+          </div>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Excluir ambiente"
+        description="Esta ação não poderá ser desfeita."
+        confirmLabel="Excluir ambiente"
+        cancelLabel="Cancelar"
+        loading={deleting}
+        destructive
+        onCancel={() => {
+          setDeleteOpen(false);
+          setModalOpen(true);
+        }}
+        onConfirm={() =>
+          void confirmarExclusao()
+        }
+      >
+        {editing && (
+          <div className="review-grid">
+            <ReviewItem
+              label="Ambiente"
+              value={
+                editing.name
+              }
+            />
 
             <ReviewItem
-              label="Descrição"
+              label="Código"
               value={
-                pendingData.description ||
-                "Sem descrição"
+                editing.code
               }
             />
           </div>

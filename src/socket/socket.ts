@@ -1,64 +1,93 @@
-import type { Server as HttpServer } from "node:http";
-import { Server as SocketIOServer } from "socket.io";
+import type {
+  Server as HttpServer,
+} from "node:http";
 
-import type { NodeStore } from "../states/nodeStore.js";
-import type { TopologyStore } from "../states/topologyStore.js";
-import { getDashboard } from "../services/dashboard.js";
+import {
+  Server as SocketIOServer,
+} from "socket.io";
+
+import type {
+  NodeStore,
+} from "../states/nodeStore.js";
+
+import type {
+  TopologyStore,
+} from "../states/topologyStore.js";
+
+import {
+  getDashboard,
+} from "../services/dashboard.js";
 
 export interface NavigationConfigUpdate {
-  environmentId: number | null;
-  updatedAt: string;
+  environmentId:
+    number | null;
+
+  updatedAt:
+    string;
 }
 
 export function createSocket(
-  httpServer: HttpServer,
-  store: NodeStore,
-  topology: TopologyStore
+  httpServer:
+    HttpServer,
+
+  store:
+    NodeStore,
+
+  topology:
+    TopologyStore,
 ) {
-  const io = new SocketIOServer(httpServer);
-
-  io.on("connection", socket => {
-    console.log(`[SOCKET] Cliente conectado: ${socket.id}`);
-
-    socket.emit(
-      "dashboard:update",
-      getDashboard(store, topology)
+  const io =
+    new SocketIOServer(
+      httpServer,
     );
 
-    socket.on("disconnect", () => {
-      console.log(
-        `[SOCKET] Cliente desconectado: ${socket.id}`
+  io.on(
+    "connection",
+    socket => {
+      socket.emit(
+        "dashboard:update",
+
+        getDashboard(
+          store,
+          topology,
+        ),
       );
-    });
-  });
+    },
+  );
 
   function sendDashboard() {
     io.emit(
       "dashboard:update",
-      getDashboard(store, topology)
+
+      getDashboard(
+        store,
+        topology,
+      ),
     );
   }
 
   function sendNavigationConfigUpdated(
-    environmentId: number | null = null
+    environmentId:
+      number | null =
+      null,
   ) {
-    const update: NavigationConfigUpdate = {
+    const update:
+      NavigationConfigUpdate = {
       environmentId,
-      updatedAt: new Date().toISOString()
+
+      updatedAt:
+        new Date()
+          .toISOString(),
     };
 
     io.emit(
       "navigation_config_updated",
-      update
-    );
-
-    console.log(
-      `[SOCKET] Configuração de navegação atualizada | ambiente: ${environmentId ?? "todos"}`
+      update,
     );
   }
 
   return {
     sendDashboard,
-    sendNavigationConfigUpdated
+    sendNavigationConfigUpdated,
   };
 }

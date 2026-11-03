@@ -1,4 +1,6 @@
-import { apiRequest } from "./api";
+import {
+  apiRequest,
+} from "./api";
 
 import type {
   NavigationHistory,
@@ -6,24 +8,53 @@ import type {
 } from "../types/history";
 
 export function getVerificationHistory() {
-  return apiRequest<VerificationHistory[]>(
+  return apiRequest<
+    VerificationHistory[]
+  >(
     "/api/verifications/history?limit=200",
-    { authenticated: true },
+    {
+      authenticated: true,
+    },
   );
 }
 
 export function getVerificationHistoryItem(
   id: number,
 ) {
-  return apiRequest<VerificationHistory>(
+  return apiRequest<
+    VerificationHistory
+  >(
     `/api/verifications/history/${id}`,
-    { authenticated: true },
+    {
+      authenticated: true,
+    },
+  );
+}
+
+export function runVerification(
+  target: string,
+) {
+  return apiRequest<unknown>(
+    "/api/verifications/run",
+    {
+      method: "POST",
+      authenticated: true,
+
+      body:
+        JSON.stringify({
+          target,
+        }),
+    },
   );
 }
 
 export function getTodayNavigationHistory() {
-  return apiRequest<NavigationHistory[]>(
+  return apiRequest<
+    NavigationHistory[]
+  >(
     "/api/navigation-history/today",
-    { authenticated: true },
+    {
+      authenticated: true,
+    },
   );
 }

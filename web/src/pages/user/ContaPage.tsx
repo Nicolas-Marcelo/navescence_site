@@ -1,9 +1,12 @@
 import {
   Link,
+  Navigate,
   useNavigate,
 } from "react-router-dom";
 
-import { useAuth } from "../../context/AuthContext";
+import {
+  useAuth,
+} from "../../context/AuthContext";
 
 export function ContaPage() {
   const {
@@ -14,7 +17,21 @@ export function ContaPage() {
   const navigate =
     useNavigate();
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
+
+  if (
+    user.role ===
+    "ADMIN"
+  ) {
+    return (
+      <Navigate
+        to="/admin"
+        replace
+      />
+    );
+  }
 
   function sair() {
     logout();
@@ -47,7 +64,9 @@ export function ContaPage() {
             N
           </span>
 
-          <span>NAVESCENCE</span>
+          <span>
+            NAVESCENCE
+          </span>
         </Link>
 
         <nav className="topnav">
@@ -66,11 +85,13 @@ export function ContaPage() {
           Usuário
         </span>
 
-        <h1>Minha conta</h1>
+        <h1>
+          Minha conta
+        </h1>
 
         <p className="muted">
-          Dados vinculados ao seu acesso
-          ao NAVESCENCE.
+          Dados vinculados ao seu
+          acesso ao NAVESCENCE.
         </p>
 
         <section className="profile-card">
@@ -80,37 +101,57 @@ export function ContaPage() {
             </div>
 
             <div>
-              <h2>{user.name}</h2>
-              <p>{user.email}</p>
+              <h2>
+                {user.name}
+              </h2>
+
+              <p>
+                {user.email}
+              </p>
             </div>
           </div>
 
           <dl className="profile-data">
             <div>
-              <dt>Nome</dt>
-              <dd>{user.name}</dd>
-            </div>
+              <dt>
+                Nome
+              </dt>
 
-            <div>
-              <dt>E-mail</dt>
-              <dd>{user.email}</dd>
-            </div>
-
-            <div>
-              <dt>Situação</dt>
               <dd>
-                {user.status === "ACTIVE"
+                {user.name}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                E-mail
+              </dt>
+
+              <dd>
+                {user.email}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                Situação
+              </dt>
+
+              <dd>
+                {user.status ===
+                "ACTIVE"
                   ? "Conta ativa"
                   : user.status}
               </dd>
             </div>
 
             <div>
-              <dt>Tipo de usuário</dt>
+              <dt>
+                Tipo de usuário
+              </dt>
+
               <dd>
-                {user.role === "ADMIN"
-                  ? "Administrador"
-                  : "Usuário"}
+                Usuário
               </dd>
             </div>
           </dl>

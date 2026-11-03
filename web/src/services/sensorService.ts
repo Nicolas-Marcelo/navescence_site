@@ -1,4 +1,6 @@
-import { apiRequest } from "./api";
+import {
+  apiRequest,
+} from "./api";
 
 import type {
   DashboardData,
@@ -7,42 +9,87 @@ import type {
 } from "../types/sensor";
 
 export function getSensors() {
-  return apiRequest<Sensor[]>(
+  return apiRequest<
+    Sensor[]
+  >(
     "/api/sensors",
-    { authenticated: true },
+    {
+      authenticated:
+        true,
+    },
   );
 }
 
 export function getDashboard() {
-  return apiRequest<DashboardData>(
+  return apiRequest<
+    DashboardData
+  >(
     "/api/dashboard",
-    { authenticated: true },
+    {
+      authenticated:
+        true,
+    },
   );
 }
 
 export function createSensor(
-  payload: SensorPayload,
+  payload:
+    SensorPayload,
 ) {
-  return apiRequest<Sensor>(
+  return apiRequest<
+    Sensor
+  >(
     "/api/sensors",
     {
-      method: "POST",
-      authenticated: true,
-      body: JSON.stringify(payload),
+      method:
+        "POST",
+
+      authenticated:
+        true,
+
+      body:
+        JSON.stringify(
+          payload,
+        ),
     },
   );
 }
 
 export function updateSensor(
   id: number,
-  payload: SensorPayload,
+  payload:
+    SensorPayload,
 ) {
-  return apiRequest<Sensor>(
+  return apiRequest<
+    Sensor
+  >(
     `/api/sensors/${id}`,
     {
-      method: "PUT",
-      authenticated: true,
-      body: JSON.stringify(payload),
+      method:
+        "PUT",
+
+      authenticated:
+        true,
+
+      body:
+        JSON.stringify(
+          payload,
+        ),
+    },
+  );
+}
+
+export function deleteSensor(
+  id: number,
+) {
+  return apiRequest<void>(
+    `/api/sensors/${id}`,
+    {
+      method:
+        "DELETE",
+
+      authenticated:
+        true,
     },
   );
 }

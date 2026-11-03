@@ -11,18 +11,24 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
 
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true
   },
 
   "include": [
     "src/**/*.ts"
-, "src/api/authRoutes.js"  ],
+  ],
 
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "web"
   ]
 }

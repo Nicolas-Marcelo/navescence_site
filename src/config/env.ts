@@ -19,19 +19,41 @@ function readBoolean(
 ): boolean {
   if (!value) return fallback;
 
-  return ["true", "1", "yes", "on"]
-    .includes(value.toLowerCase());
+  return [
+    "true",
+    "1",
+    "yes",
+    "on",
+  ].includes(
+    value.toLowerCase(),
+  );
+}
+
+function readList(
+  value: string | undefined,
+): string[] {
+  if (!value) return [];
+
+  return value
+    .split(",")
+    .map(item =>
+      item.trim(),
+    )
+    .filter(Boolean);
 }
 
 const nodeEnv =
-  process.env.NODE_ENV ?? "development";
+  process.env.NODE_ENV ??
+  "development";
 
 const jwtSecret =
-  process.env.JWT_SECRET?.trim() ||
+  process.env.JWT_SECRET
+    ?.trim() ||
   "navescence-dev-change-this-secret";
 
 if (
-  nodeEnv === "production" &&
+  nodeEnv ===
+    "production" &&
   jwtSecret ===
     "navescence-dev-change-this-secret"
 ) {
@@ -39,6 +61,28 @@ if (
     "JWT_SECRET deve ser configurado em produção.",
   );
 }
+
+if (
+  nodeEnv ===
+    "production" &&
+  jwtSecret.length < 32
+) {
+  throw new Error(
+    "JWT_SECRET deve possuir pelo menos 32 caracteres em produção.",
+  );
+}
+
+const configuredOrigins =
+  readList(
+    process.env
+      .CORS_ORIGINS,
+  );
+
+const developmentOrigins =
+  [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ];
 
 export const config = {
   nodeEnv,
@@ -48,36 +92,56 @@ export const config = {
       process.env.MQTT_HOST ??
       "127.0.0.1",
 
-    port: readNumber(
-      process.env.MQTT_PORT,
-      1884,
-    ),
+    port:
+      readNumber(
+        process.env.MQTT_PORT,
+        1884,
+      ),
 
     user:
       process.env.MQTT_USER ??
       "",
 
     password:
-      process.env.MQTT_PASSWORD ??
+      process.env
+        .MQTT_PASSWORD ??
       "",
   },
 
   web: {
-    port: readNumber(
-      process.env.PORT,
-      3000,
-    ),
+    port:
+      readNumber(
+        process.env.PORT,
+        3000,
+      ),
 
     publicBaseUrl:
-      process.env.PUBLIC_BASE_URL ??
+      process.env
+        .PUBLIC_BASE_URL ??
       "http://localhost:3000",
+
+    allowedOrigins:
+      [
+        ...developmentOrigins,
+        ...configuredOrigins,
+      ].filter(
+        (
+          value,
+          index,
+          array,
+        ) =>
+          array.indexOf(
+            value,
+          ) === index,
+      ),
   },
 
   auth: {
     jwtSecret,
 
     jwtExpiresIn:
-      process.env.JWT_EXPIRES_IN ??
+      process.env
+        .JWT_EXPIRES_IN ??
       "30d",
 
     verificationMinutes:
@@ -93,22 +157,26 @@ export const config = {
       process.env.SMTP_HOST ??
       "",
 
-    port: readNumber(
-      process.env.SMTP_PORT,
-      587,
-    ),
+    port:
+      readNumber(
+        process.env.SMTP_PORT,
+        587,
+      ),
 
-    secure: readBoolean(
-      process.env.SMTP_SECURE,
-      false,
-    ),
+    secure:
+      readBoolean(
+        process.env
+          .SMTP_SECURE,
+        false,
+      ),
 
     user:
       process.env.SMTP_USER ??
       "",
 
     password:
-      process.env.SMTP_PASSWORD ??
+      process.env
+        .SMTP_PASSWORD ??
       "",
 
     from:

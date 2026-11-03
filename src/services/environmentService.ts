@@ -1,22 +1,29 @@
 import type {
   EnvironmentData,
-  EnvironmentRepository
+  EnvironmentRepository,
 } from "../repositories/environmentRepository.js";
 
 export function createEnvironmentService(
-  repository: EnvironmentRepository,
-  onNavigationUpdate: () => void = () => {}
+  repository:
+    EnvironmentRepository,
+
+  onNavigationUpdate:
+    () => void = () => {},
 ) {
   function list() {
     return repository.findAll();
   }
 
-  function get(id: number) {
-    return repository.findById(id);
+  function get(
+    id: number,
+  ) {
+    return repository.findById(
+      id,
+    );
   }
 
   async function create(
-    data: EnvironmentData
+    data: EnvironmentData,
   ) {
     const code =
       data.code
@@ -24,17 +31,18 @@ export function createEnvironmentService(
         .toUpperCase();
 
     const name =
-      data.name?.trim();
+      data.name
+        ?.trim();
 
     if (!code) {
       throw new Error(
-        "O código do ambiente é obrigatório."
+        "ENVIRONMENT_CODE_REQUIRED",
       );
     }
 
     if (!name) {
       throw new Error(
-        "O nome do ambiente é obrigatório."
+        "ENVIRONMENT_NAME_REQUIRED",
       );
     }
 
@@ -46,15 +54,18 @@ export function createEnvironmentService(
         type:
           data.type
             ?.trim()
-            .toUpperCase() || null,
+            .toUpperCase() ||
+          null,
 
         floor:
-          data.floor?.trim() ||
+          data.floor
+            ?.trim() ||
           "Térreo",
 
         description:
           data.description
-            ?.trim() || null
+            ?.trim() ||
+          null,
       });
 
     onNavigationUpdate();
@@ -64,58 +75,93 @@ export function createEnvironmentService(
 
   async function update(
     id: number,
-    data: Partial<EnvironmentData>
+    data:
+      Partial<EnvironmentData>,
   ) {
     const environment =
-      await repository.findById(id);
+      await repository.findById(
+        id,
+      );
 
-    if (!environment) return null;
+    if (!environment) {
+      return null;
+    }
 
     const updated =
-      await repository.update(id, {
-        code:
-          data.code === undefined
-            ? undefined
-            : data.code
-                .trim()
-                .toUpperCase(),
+      await repository.update(
+        id,
+        {
+          code:
+            data.code ===
+            undefined
+              ? undefined
+              : data.code
+                  .trim()
+                  .toUpperCase(),
 
-        name:
-          data.name === undefined
-            ? undefined
-            : data.name.trim(),
+          name:
+            data.name ===
+            undefined
+              ? undefined
+              : data.name
+                  .trim(),
 
-        type:
-          data.type === undefined
-            ? undefined
-            : data.type
-                ?.trim()
-                .toUpperCase() || null,
+          type:
+            data.type ===
+            undefined
+              ? undefined
+              : data.type
+                  ?.trim()
+                  .toUpperCase() ||
+                null,
 
-        floor:
-          data.floor === undefined
-            ? undefined
-            : data.floor.trim(),
+          floor:
+            data.floor ===
+            undefined
+              ? undefined
+              : data.floor
+                  .trim(),
 
-        description:
-          data.description === undefined
-            ? undefined
-            : data.description
-                ?.trim() || null
-      });
+          description:
+            data.description ===
+            undefined
+              ? undefined
+              : data.description
+                  ?.trim() ||
+                null,
+        },
+      );
 
     onNavigationUpdate();
 
     return updated;
   }
 
-  async function remove(id: number) {
+  async function remove(
+    id: number,
+  ) {
     const environment =
-      await repository.findById(id);
+      await repository.findById(
+        id,
+      );
 
-    if (!environment) return null;
+    if (!environment) {
+      return null;
+    }
 
-    await repository.remove(id);
+    if (
+      environment
+        ._count
+        .nodes > 0
+    ) {
+      throw new Error(
+        "ENVIRONMENT_HAS_SENSORS",
+      );
+    }
+
+    await repository.remove(
+      id,
+    );
 
     onNavigationUpdate();
 
@@ -127,7 +173,7 @@ export function createEnvironmentService(
     get,
     create,
     update,
-    remove
+    remove,
   };
 }
 

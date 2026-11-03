@@ -25,6 +25,10 @@ import {
   validateBody,
 } from "./validationMiddleware.js";
 
+import {
+  validatePositiveIdParam,
+} from "./parameterValidation.js";
+
 function onlyMethod(
   method: string,
   middleware: (
@@ -163,6 +167,10 @@ function poiValidation(
 export function registerInfrastructureSecurity(
   app: Application,
 ) {
+  app.param(
+    "id",
+    validatePositiveIdParam,
+  );
   app.use(
     "/api/dashboard",
     requireAdmin,
@@ -217,9 +225,9 @@ export function registerInfrastructureSecurity(
     ) => {
       if (
         request.method ===
-          "POST" &&
+        "POST" &&
         request.path ===
-          "/run"
+        "/run"
       ) {
         return validateBody(
           verificationRunSchema,

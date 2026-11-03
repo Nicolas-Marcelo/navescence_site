@@ -5,20 +5,32 @@ import {
 } from "react-router-dom";
 
 import {
-  AuthProvider,
-} from "./context/AuthContext";
+  ErrorBoundary,
+} from "./components/ErrorBoundary";
 
 import {
   ProtectedRoute,
 } from "./components/ProtectedRoute";
 
 import {
+  AdminRoute,
+} from "./components/AdminRoute";
+
+import {
   AppLayout,
 } from "./components/layout/AppLayout";
 
 import {
+  AuthProvider,
+} from "./context/AuthContext";
+
+import {
   HomePage,
 } from "./pages/HomePage";
+
+import {
+  NotFoundPage,
+} from "./pages/NotFoundPage";
 
 import {
   LoginPage,
@@ -27,10 +39,6 @@ import {
 import {
   CadastroPage,
 } from "./pages/auth/CadastroPage";
-
-import {
-  VerificarEmailPage,
-} from "./pages/auth/VerificarEmailPage";
 
 import {
   ContaPage,
@@ -78,123 +86,144 @@ import {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <HomePage />
-            }
-          />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            {/* PÚBLICAS */}
 
-          <Route
-            path="/login"
-            element={
-              <LoginPage />
-            }
-          />
-
-          <Route
-            path="/cadastro"
-            element={
-              <CadastroPage />
-            }
-          />
-
-          <Route
-            path="/verificar-email"
-            element={
-              <VerificarEmailPage />
-            }
-          />
-
-          <Route
-            element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }
-          >
             <Route
-              path="/admin"
+              path="/"
               element={
-                <DashboardPage />
+                <HomePage />
               }
             />
 
             <Route
-              path="/admin/sensores"
+              path="/login"
               element={
-                <SensoresPage />
+                <LoginPage />
               }
             />
 
             <Route
-              path="/admin/sensores/:code"
+              path="/cadastro"
               element={
-                <SensorDetalhePage />
+                <CadastroPage />
               }
             />
 
-            <Route
-              path="/admin/alertas"
-              element={
-                <AlertasPage />
-              }
-            />
-
-            <Route
-              path="/admin/ambientes"
-              element={
-                <AmbientesPage />
-              }
-            />
-
-            <Route
-              path="/admin/pois"
-              element={
-                <PoisPage />
-              }
-            />
-
-            <Route
-              path="/admin/topologia"
-              element={
-                <TopologiaPage />
-              }
-            />
-
-            <Route
-              path="/admin/usuarios"
-              element={
-                <UsuariosPage />
-              }
-            />
-
-            <Route
-              path="/admin/historico"
-              element={
-                <HistoricoPage />
-              }
-            />
-
-            <Route
-              path="/admin/navegacoes"
-              element={
-                <HistoricoUsuarioPage />
-              }
-            />
+            {/* USUÁRIO AUTENTICADO */}
 
             <Route
               path="/conta"
               element={
-                <ContaPage />
+                <ProtectedRoute>
+                  <ContaPage />
+                </ProtectedRoute>
               }
             />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+
+            <Route
+              path="/historico"
+              element={
+                <ProtectedRoute>
+                  <HistoricoUsuarioPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ADMINISTRAÇÃO */}
+
+            <Route
+              element={
+                <AdminRoute>
+                  <AppLayout />
+                </AdminRoute>
+              }
+            >
+              <Route
+                path="/admin"
+                element={
+                  <DashboardPage />
+                }
+              />
+
+              <Route
+                path="/admin/sensores"
+                element={
+                  <SensoresPage />
+                }
+              />
+
+              <Route
+                path="/admin/sensores/:code"
+                element={
+                  <SensorDetalhePage />
+                }
+              />
+
+              <Route
+                path="/admin/ambientes"
+                element={
+                  <AmbientesPage />
+                }
+              />
+
+              <Route
+                path="/admin/pois"
+                element={
+                  <PoisPage />
+                }
+              />
+
+              <Route
+                path="/admin/topologia"
+                element={
+                  <TopologiaPage />
+                }
+              />
+
+              <Route
+                path="/admin/alertas"
+                element={
+                  <AlertasPage />
+                }
+              />
+
+              <Route
+                path="/admin/historico"
+                element={
+                  <HistoricoPage />
+                }
+              />
+
+              <Route
+                path="/admin/navegacoes"
+                element={
+                  <HistoricoUsuarioPage />
+                }
+              />
+
+              <Route
+                path="/admin/usuarios"
+                element={
+                  <UsuariosPage />
+                }
+              />
+            </Route>
+
+            {/* 404 */}
+
+            <Route
+              path="*"
+              element={
+                <NotFoundPage />
+              }
+            />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

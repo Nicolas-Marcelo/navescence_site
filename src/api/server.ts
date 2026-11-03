@@ -4,7 +4,9 @@ import {
   createServer as createHttpServer,
 } from "node:http";
 
-import { config } from "../config/env.js";
+import {
+  config,
+} from "../config/env.js";
 
 import type {
   NodeStore,
@@ -74,6 +76,10 @@ import {
 } from "./navigationRoutes.js";
 
 import {
+  registerSensorDeleteRoutes,
+} from "./sensorDeleteRoutes.js";
+
+import {
   registerRoutes,
   type VerificationControl,
 } from "./routes.js";
@@ -82,12 +88,17 @@ export function createWebServer(
   store: NodeStore,
   topology: TopologyStore,
   nodeService: NodeService,
-  topologyService: TopologyService,
-  environmentService: EnvironmentService,
+  topologyService:
+    TopologyService,
+  environmentService:
+    EnvironmentService,
   poiService: PoiService,
-  navigationService: NavigationService,
-  verificationService: VerificationService,
-  alertService: AlertService,
+  navigationService:
+    NavigationService,
+  verificationService:
+    VerificationService,
+  alertService:
+    AlertService,
   verificationControl:
     VerificationControl,
   syncInfrastructure:
@@ -97,21 +108,14 @@ export function createWebServer(
     express();
 
   const httpServer =
-    createHttpServer(app);
+    createHttpServer(
+      app,
+    );
 
-  /*
-   * Headers HTTP de segurança.
-   *
-   * Inclui Helmet e CSP.
-   */
-  registerSecurityHeaders(app);
+  registerSecurityHeaders(
+    app,
+  );
 
-  /*
-   * Limita o tamanho do JSON recebido.
-   *
-   * Evita que a API aceite corpos
-   * desnecessariamente grandes.
-   */
   app.use(
     express.json({
       limit: "256kb",
@@ -119,21 +123,11 @@ export function createWebServer(
     }),
   );
 
-  /*
-   * Limite geral para operações
-   * que modificam dados.
-   *
-   * GET, HEAD e OPTIONS são ignorados.
-   */
   app.use(
     "/api",
     mutationRateLimit,
   );
 
-  /*
-   * Limites específicos das
-   * operações de autenticação.
-   */
   app.use(
     "/api/auth/login",
     loginRateLimit,
@@ -154,45 +148,24 @@ export function createWebServer(
     verificationRateLimit,
   );
 
-  /*
-   * API de autenticação.
-   *
-   * Cadastro e login permanecem
-   * públicos, mas protegidos por
-   * rate limiting.
-   */
-  registerAuthRoutes(app);
+  registerAuthRoutes(
+    app,
+  );
 
-  /*
-   * Histórico pessoal do usuário.
-   *
-   * As próprias rotas utilizam
-   * requireAuth.
-   */
   registerNavigationHistoryRoutes(
     app,
   );
 
-  /*
-   * Proteção da infraestrutura.
-   *
-   * IMPORTANTE:
-   * precisa vir ANTES de
-   * registerRoutes().
-   *
-   * Aqui são aplicados:
-   * - JWT obrigatório;
-   * - role ADMIN;
-   * - validação Zod;
-   * - rejeição de campos extras.
-   */
   registerInfrastructureSecurity(
     app,
   );
 
-  /*
-   * Administração e infraestrutura.
-   */
+  registerSensorDeleteRoutes(
+    app,
+    nodeService,
+    syncInfrastructure,
+  );
+
   registerRoutes(
     app,
     store,
@@ -207,29 +180,23 @@ export function createWebServer(
     syncInfrastructure,
   );
 
-  /*
-   * Configuração consumida pelo
-   * aplicativo Flutter.
-   *
-   * Não entra na proteção administrativa,
-   * pois o aplicativo precisa acessar
-   * /api/navigation/config.
-   */
   registerNavigationRoutes(
     app,
     navigationService,
   );
 
-  /*
-   * Endpoint de diagnóstico.
-   */
   app.get(
     "/api/health",
-    (_req, res) => {
-      res.json({
+    (
+      _request,
+      response,
+    ) => {
+      response.json({
         status: "ok",
+
         service:
           "navescence-central",
+
         timestamp:
           new Date()
             .toISOString(),
@@ -237,17 +204,13 @@ export function createWebServer(
     },
   );
 
-  /*
-   * Resposta padrão para qualquer
-   * endpoint inexistente da API.
-   *
-   * Deve permanecer antes do
-   * express.static().
-   */
   app.use(
     "/api",
-    (_req, res) => {
-      res
+    (
+      _request,
+      response,
+    ) => {
+      response
         .status(404)
         .json({
           error:
@@ -259,17 +222,12 @@ export function createWebServer(
     },
   );
 
-  /*
-   * Site estático legado.
-   *
-   * Mantido por enquanto enquanto
-   * concluímos a migração para React.
-   */
   app.use(
     express.static(
       "public",
       {
-        index: "index.html",
+        index:
+          "index.html",
 
         maxAge:
           config.nodeEnv ===
@@ -277,14 +235,12 @@ export function createWebServer(
             ? "1h"
             : 0,
 
-        etag: true,
+        etag:
+          true,
       },
     ),
   );
 
-  /*
-   * Socket.IO.
-   */
   const socket =
     createSocket(
       httpServer,
@@ -300,8 +256,13 @@ export function createWebServer(
         reject,
       ) => {
         const onError =
-          (error: Error) => {
-            reject(error);
+          (
+            error:
+              Error,
+          ) => {
+            reject(
+              error,
+            );
           };
 
         httpServer.once(
@@ -320,28 +281,23 @@ export function createWebServer(
             console.log();
 
             console.log(
-              `Interface: ` +
-              `http://localhost:${config.web.port}`,
+              `Interface: http://localhost:${config.web.port}`,
             );
 
             console.log(
-              `Autenticação: ` +
-              `http://localhost:${config.web.port}/api/auth`,
+              `Autenticação: http://localhost:${config.web.port}/api/auth`,
             );
 
             console.log(
-              `Histórico usuário: ` +
-              `http://localhost:${config.web.port}/api/navigation-history/today`,
+              `Histórico usuário: http://localhost:${config.web.port}/api/navigation-history/today`,
             );
 
             console.log(
-              `API Navegação: ` +
-              `http://localhost:${config.web.port}/api/navigation/config`,
+              `API Navegação: http://localhost:${config.web.port}/api/navigation/config`,
             );
 
             console.log(
-              `Health: ` +
-              `http://localhost:${config.web.port}/api/health`,
+              `Health: http://localhost:${config.web.port}/api/health`,
             );
 
             console.log(
@@ -368,8 +324,13 @@ export function createWebServer(
       ) => {
         httpServer.close(
           error => {
-            if (error) {
-              reject(error);
+            if (
+              error
+            ) {
+              reject(
+                error,
+              );
+
               return;
             }
 

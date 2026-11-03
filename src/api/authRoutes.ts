@@ -1,6 +1,5 @@
 import type {
   Express,
-  Request,
   Response,
 } from "express";
 
@@ -13,9 +12,16 @@ import {
   getCurrentUser,
   login,
   register,
-  resendVerification,
-  verifyEmail,
 } from "../auth/authService.js";
+
+import {
+  loginSchema,
+  registerSchema,
+} from "../auth/authSchemas.js";
+
+import {
+  validateBody,
+} from "../security/validationMiddleware.js";
 
 function errorCode(
   error: unknown,
@@ -37,17 +43,12 @@ function errorStatus(
     case "INVALID_NAME":
     case "INVALID_EMAIL":
     case "WEAK_PASSWORD":
-    case "INVALID_TOKEN":
-    case "TOKEN_ALREADY_USED":
-    case "TOKEN_EXPIRED":
       return 400;
 
     case "INVALID_CREDENTIALS":
       return 401;
 
-    case "EMAIL_NOT_VERIFIED":
     case "USER_BLOCKED":
-    case "USER_NOT_ACTIVE":
       return 403;
 
     case "EMAIL_IN_USE":
@@ -82,69 +83,32 @@ function handleError(
     });
 }
 
-async function verifyHandler(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  try {
-    const token =
-      req.method === "GET"
-        ? req.query.token
-        : req.body?.token;
-
-    if (
-      typeof token !==
-      "string"
-    ) {
-      res.status(400).json({
-        error:
-          "INVALID_TOKEN",
-      });
-
-      return;
-    }
-
-    const user =
-      await verifyEmail(
-        token,
-      );
-
-    res.json({
-      message:
-        "EMAIL_VERIFIED",
-      user,
-    });
-  } catch (error) {
-    handleError(
-      res,
-      error,
-    );
-  }
-}
-
 export function
 registerAuthRoutes(
   app: Express,
 ): void {
   app.post(
     "/api/auth/register",
+
+    validateBody(
+      registerSchema,
+    ),
+
     async (req, res) => {
       try {
         const user =
-          await register({
-            name:
-              req.body?.name,
-            email:
-              req.body?.email,
-            password:
-              req.body?.password,
-          });
+          await register(
+            req.body,
+          );
 
-        res.status(201).json({
-          message:
-            "USER_CREATED",
-          user,
-        });
+        res
+          .status(201)
+          .json({
+            message:
+              "USER_CREATED",
+
+            user,
+          });
       } catch (error) {
         handleError(
           res,
@@ -156,17 +120,21 @@ registerAuthRoutes(
 
   app.post(
     "/api/auth/login",
+
+    validateBody(
+      loginSchema,
+    ),
+
     async (req, res) => {
       try {
         const result =
-          await login({
-            email:
-              req.body?.email,
-            password:
-              req.body?.password,
-          });
+          await login(
+            req.body,
+          );
 
-        res.json(result);
+        res.json(
+          result,
+        );
       } catch (error) {
         handleError(
           res,
@@ -176,58 +144,10 @@ registerAuthRoutes(
     },
   );
 
-  app.post(
-    "/api/auth/verify-email",
-    verifyHandler,
-  );
-
-  app.get(
-    "/api/auth/verify-email",
-    verifyHandler,
-  );
-
-  app.post(
-    "/api/auth/resend-verification",
-    async (req, res) => {
-      try {
-        const email =
-          req.body?.email;
-
-        if (
-          typeof email ===
-          "string"
-        ) {
-          await resendVerification(
-            email,
-          );
-        }
-
-        /*
-         * Sempre retornamos a
-         * mesma mensagem.
-         * Evita enumeração de e-mails.
-         */
-        res.json({
-          message:
-            "VERIFICATION_SENT_IF_AVAILABLE",
-        });
-      } catch (error) {
-        console.error(
-          "[AUTH] Falha no reenvio:",
-          error,
-        );
-
-        res.json({
-          message:
-            "VERIFICATION_SENT_IF_AVAILABLE",
-        });
-      }
-    },
-  );
-
   app.get(
     "/api/auth/me",
     requireAuth,
+
     async (
       req:
         AuthenticatedRequest,
@@ -238,10 +158,12 @@ registerAuthRoutes(
           req.auth?.userId;
 
         if (!userId) {
-          res.status(401).json({
-            error:
-              "UNAUTHORIZED",
-          });
+          res
+            .status(401)
+            .json({
+              error:
+                "UNAUTHORIZED",
+            });
 
           return;
         }

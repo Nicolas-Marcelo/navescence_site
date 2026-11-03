@@ -158,15 +158,18 @@ model Edge {
 }
 
 model PointOfInterest {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique @db.VarChar(40)
-  name        String   @db.VarChar(120)
-  type        String   @db.VarChar(50)
-  description String?  @db.VarChar(255)
-  nodeId      Int
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  code               String   @unique @db.VarChar(40)
+  name               String   @db.VarChar(120)
+  type               String   @db.VarChar(50)
+  description        String?  @db.VarChar(255)
+  nodeId             Int
+  x                  Float?
+  y                  Float?
+  orientationDegrees Float?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   node       Node          @relation(fields: [nodeId], references: [id], onDelete: Cascade)
   approaches PoiApproach[]

@@ -1,10 +1,6 @@
-import {
-  PoiApproachSide
-} from "../generated/prisma/client.js";
 
-import {
-  prisma
-} from "../database/prisma.js";
+import { PoiApproachSide } from "../generated/prisma/client.js";
+import { prisma } from "../database/prisma.js";
 
 export interface PoiApproachData {
   fromNodeId: number;
@@ -19,6 +15,8 @@ export interface PoiData {
   type: string;
   description?: string | null;
   nodeId: number;
+  x?: number | null;
+  y?: number | null;
   active?: boolean;
   approaches?: PoiApproachData[];
 }
@@ -26,28 +24,24 @@ export interface PoiData {
 const includePoi = {
   node: {
     include: {
-      environment: true
-    }
+      environment: true,
+    },
   },
-
   approaches: {
     include: {
-      fromNode: true
+      fromNode: true,
     },
     orderBy: {
-      id: "asc" as const
-    }
-  }
+      id: "asc" as const,
+    },
+  },
 };
 
 export function createPoiRepository() {
   function findAll() {
     return prisma.pointOfInterest.findMany({
       include: includePoi,
-
-      orderBy: {
-        name: "asc"
-      }
+      orderBy: { name: "asc" },
     });
   }
 
@@ -55,144 +49,79 @@ export function createPoiRepository() {
     return prisma.pointOfInterest.findMany({
       where: {
         active: true,
-
         node: {
           is: {
             active: true,
-            maintenance: false
-          }
-        }
+            maintenance: false,
+          },
+        },
       },
-
       include: includePoi,
-
-      orderBy: {
-        name: "asc"
-      }
+      orderBy: { name: "asc" },
     });
   }
 
-  function findById(
-    id: number
-  ) {
+  function findById(id: number) {
     return prisma.pointOfInterest.findUnique({
-      where: {
-        id
-      },
-
-      include: includePoi
+      where: { id },
+      include: includePoi,
     });
   }
 
-  function findByCode(
-    code: string
-  ) {
+  function findByCode(code: string) {
     return prisma.pointOfInterest.findUnique({
-      where: {
-        code
-      },
-
-      include: includePoi
+      where: { code },
+      include: includePoi,
     });
   }
 
-  function create(
-    data: PoiData
-  ) {
-    const {
-      approaches,
-      ...poiData
-    } = data;
+  function create(data: PoiData) {
+    const { approaches, ...poiData } = data;
 
     return prisma.pointOfInterest.create({
       data: {
         ...poiData,
-
-        approaches:
-          approaches &&
-          approaches.length > 0
-            ? {
-                create:
-                  approaches.map(
-                    approach => ({
-                      fromNodeId:
-                        approach.fromNodeId,
-
-                      side:
-                        approach.side,
-
-                      distanceMeters:
-                        approach.distanceMeters ??
-                        null,
-
-                      instruction:
-                        approach.instruction ??
-                        null
-                    })
-                  )
-              }
-            : undefined
+        approaches: approaches && approaches.length > 0
+          ? {
+              create: approaches.map(approach => ({
+                fromNodeId: approach.fromNodeId,
+                side: approach.side,
+                distanceMeters: approach.distanceMeters ?? null,
+                instruction: approach.instruction ?? null,
+              })),
+            }
+          : undefined,
       },
-
-      include: includePoi
+      include: includePoi,
     });
   }
 
-  function update(
-    id: number,
-    data: Partial<PoiData>
-  ) {
-    const {
-      approaches,
-      ...poiData
-    } = data;
+  function update(id: number, data: Partial<PoiData>) {
+    const { approaches, ...poiData } = data;
 
     return prisma.pointOfInterest.update({
-      where: {
-        id
-      },
-
+      where: { id },
       data: {
         ...poiData,
-
-        approaches:
-          approaches !== undefined
-            ? {
-                deleteMany: {},
-
-                create:
-                  approaches.map(
-                    approach => ({
-                      fromNodeId:
-                        approach.fromNodeId,
-
-                      side:
-                        approach.side,
-
-                      distanceMeters:
-                        approach.distanceMeters ??
-                        null,
-
-                      instruction:
-                        approach.instruction ??
-                        null
-                    })
-                  )
-              }
-            : undefined
+        approaches: approaches !== undefined
+          ? {
+              deleteMany: {},
+              create: approaches.map(approach => ({
+                fromNodeId: approach.fromNodeId,
+                side: approach.side,
+                distanceMeters: approach.distanceMeters ?? null,
+                instruction: approach.instruction ?? null,
+              })),
+            }
+          : undefined,
       },
-
-      include: includePoi
+      include: includePoi,
     });
   }
 
-  function remove(
-    id: number
-  ) {
+  function remove(id: number) {
     return prisma.pointOfInterest.delete({
-      where: {
-        id
-      }
+      where: { id },
     });
   }
 
@@ -203,11 +132,8 @@ export function createPoiRepository() {
     findByCode,
     create,
     update,
-    remove
+    remove,
   };
 }
 
-export type PoiRepository =
-  ReturnType<
-    typeof createPoiRepository
-  >;
+export type PoiRepository = ReturnType<typeof createPoiRepository>;

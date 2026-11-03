@@ -1,37 +1,147 @@
-import { z } from "zod";
+import {
+  z,
+} from "zod";
 
-export const poiSchema = z.object({
-  code: z
+function optionalCoordinate(
+  label: string,
+) {
+  return z
     .string()
     .trim()
-    .min(2, "Informe o código.")
-    .max(30, "O código é muito longo.")
-    .regex(
-      /^[A-Za-z0-9_-]+$/,
-      "Use apenas letras, números, hífen e underline.",
-    ),
+    .refine(
+      value => {
+        if (value === "") {
+          return true;
+        }
 
-  name: z
-    .string()
-    .trim()
-    .min(2, "Informe o nome do ponto de interesse.")
-    .max(100, "O nome é muito longo."),
+        const number =
+          Number(value);
 
-  type: z
-    .string()
-    .min(1, "Selecione o tipo."),
+        return (
+          Number.isFinite(
+            number,
+          ) &&
+          number >= -10000 &&
+          number <= 10000
+        );
+      },
+      `${label} inválida.`,
+    );
+}
 
-  nodeId: z
-    .string()
-    .min(1, "Selecione o sensor relacionado."),
+export const poiSchema =
+  z
+    .object({
+      code:
+        z
+          .string()
+          .trim()
+          .min(
+            2,
+            "Informe o código.",
+          )
+          .max(
+            40,
+            "O código deve possuir no máximo 40 caracteres.",
+          )
+          .regex(
+            /^[A-Za-z0-9_-]+$/,
+            "Use apenas letras, números, hífen e underline.",
+          ),
 
-  description: z
-    .string()
-    .trim()
-    .max(300, "A descrição deve possuir no máximo 300 caracteres."),
+      name:
+        z
+          .string()
+          .trim()
+          .min(
+            2,
+            "Informe o nome do ponto de interesse.",
+          )
+          .max(
+            120,
+            "O nome deve possuir no máximo 120 caracteres.",
+          ),
 
-  active: z.boolean(),
-});
+      type:
+        z
+          .string()
+          .min(
+            1,
+            "Selecione o tipo.",
+          ),
+
+      nodeId:
+        z
+          .string()
+          .min(
+            1,
+            "Selecione o sensor de acesso.",
+          ),
+
+      description:
+        z
+          .string()
+          .trim()
+          .max(
+            255,
+            "A descrição deve possuir no máximo 255 caracteres.",
+          ),
+
+      x:
+        optionalCoordinate(
+          "Coordenada X",
+        ),
+
+      y:
+        optionalCoordinate(
+          "Coordenada Y",
+        ),
+
+      active:
+        z.boolean(),
+    })
+    .strict()
+    .superRefine(
+      (
+        data,
+        context,
+      ) => {
+        if (
+          (
+            data.x === "" &&
+            data.y !== ""
+          ) ||
+          (
+            data.x !== "" &&
+            data.y === ""
+          )
+        ) {
+          context.addIssue({
+            code: "custom",
+
+            path: [
+              "x",
+            ],
+
+            message:
+              "Informe as coordenadas X e Y juntas.",
+          });
+
+          context.addIssue({
+            code: "custom",
+
+            path: [
+              "y",
+            ],
+
+            message:
+              "Informe as coordenadas X e Y juntas.",
+          });
+        }
+      },
+    );
 
 export type PoiFormData =
-  z.infer<typeof poiSchema>;
+  z.infer<
+    typeof poiSchema
+  >;

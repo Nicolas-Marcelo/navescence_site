@@ -56,11 +56,28 @@ export function registerSecurityHeaders(
           frameAncestors: [
             "'none'",
           ],
+
+          formAction: [
+            "'self'",
+          ],
         },
       },
 
       crossOriginEmbedderPolicy:
         false,
+
+      referrerPolicy: {
+        policy:
+          "no-referrer",
+      },
+
+      hsts: {
+        maxAge:
+          31536000,
+
+        includeSubDomains:
+          true,
+      },
     }),
   );
 }

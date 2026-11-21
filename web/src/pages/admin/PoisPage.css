@@ -1,0 +1,123 @@
+
+.poi-edit-form {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.poi-edit-form .form-grid {
+  margin-bottom: 22px;
+}
+
+.poi-edit-form .field {
+  min-width: 0;
+}
+
+.poi-edit-form .field input,
+.poi-edit-form .field select,
+.poi-edit-form .field textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.poi-edit-form .field [aria-invalid="true"] {
+  border-color: #c74646;
+  background-color: #fffafa;
+}
+
+.poi-edit-form .field [aria-invalid="true"]:focus {
+  outline: 2px solid rgba(199, 70, 70, 0.16);
+  outline-offset: 1px;
+}
+
+.poi-edit-form .field-error {
+  display: block;
+  margin-top: 5px;
+  color: #b13b43;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.poi-availability-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0 8px;
+  padding: 12px 8px;
+}
+
+.poi-availability-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.poi-availability-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+
+.poi-edit-form .poi-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 18px 0 0;
+  padding: 18px 8px 6px;
+  border-top: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.poi-form-actions-left,
+.poi-form-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.poi-form-actions-right {
+  margin-left: auto;
+}
+
+.poi-form-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: auto;
+  min-height: 40px;
+  padding: 10px 13px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.poi-form-actions .button svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+  .poi-edit-form .poi-form-actions {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 4px 6px;
+  }
+
+  .poi-form-actions-left,
+  .poi-form-actions-right {
+    gap: 8px;
+  }
+
+  .poi-form-actions .button {
+    min-height: 38px;
+    padding: 9px 11px;
+    font-size: 0.76rem;
+  }
+}

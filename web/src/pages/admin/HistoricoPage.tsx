@@ -1,290 +1,141 @@
+
 import {
-  Eye,
-  Play,
-  RefreshCw,
-  X,
+  Activity, CalendarClock, Clock3, Cpu, Eye, Play,
+  RadioTower, RefreshCw, WifiOff, X,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  LoadingState,
-} from "../../components/ui/LoadingState";
-
-import {
-  useSensors,
-} from "../../hooks/useSensors";
-
+import { LoadingState } from "../../components/ui/LoadingState";
+import { useSensors } from "../../hooks/useSensors";
 import {
   getVerificationHistory,
   getVerificationHistoryItem,
   runVerification,
 } from "../../services/historyService";
+import type { VerificationHistory } from "../../types/history";
 
-import type {
-  VerificationHistory,
-} from "../../types/history";
+import "./HistoricoPage.css";
 
-function formatDate(
-  value:
-    string | null | undefined,
-) {
-  if (!value) {
-    return "—";
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleString("pt-BR");
+}
+
+function formatDuration(value: number | null | undefined) {
+  if (value == null) return "—";
+  return `${(value / 1000).toFixed(1).replace(".", ",")} s`;
+}
+
+function formatNumber(value: number | null | undefined, suffix = "") {
+  return value == null ? "—" : `${value}${suffix}`;
+}
+
+function translateMode(mode: string) {
+  switch (mode) {
+    case "AUTOMATIC": return "Automática";
+    case "MANUAL": return "Manual";
+    default: return mode;
   }
+}
 
-  return new Date(
-    value,
-  ).toLocaleString(
-    "pt-BR",
+function translateResult(result: string) {
+  switch (result) {
+    case "FINISHED": return "Finalizada";
+    case "OFFLINE": return "Offline";
+    case "TIMEOUT": return "Tempo esgotado";
+    case "ERROR": return "Erro";
+    default: return result;
+  }
+}
+
+function resultClass(result: string) {
+  switch (result) {
+    case "FINISHED": return "success";
+    case "OFFLINE": return "neutral";
+    case "TIMEOUT": return "warning";
+    case "ERROR": return "danger";
+    default: return "neutral";
+  }
+}
+
+interface DetailItemProps {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  wide?: boolean;
+}
+
+function DetailItem({ label, value, icon, wide = false }: DetailItemProps) {
+  return (
+    <div className={`verification-detail-item${wide ? " wide" : ""}`}>
+      <div className="verification-detail-label">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <strong className="verification-detail-value">{value}</strong>
+    </div>
   );
-}
-
-function formatDuration(
-  value:
-    number | null | undefined,
-) {
-  if (
-    value == null
-  ) {
-    return "—";
-  }
-
-  return `${(
-    value / 1000
-  ).toFixed(1)} s`;
-}
-
-function formatNumber(
-  value:
-    number | null | undefined,
-  suffix = "",
-) {
-  if (
-    value == null
-  ) {
-    return "—";
-  }
-
-  return `${value}${suffix}`;
-}
-
-function translateMode(
-  mode: string,
-) {
-  switch (
-    mode
-  ) {
-    case "AUTOMATIC":
-      return "Automática";
-
-    case "MANUAL":
-      return "Manual";
-
-    default:
-      return mode;
-  }
-}
-
-function translateResult(
-  result: string,
-) {
-  switch (
-    result
-  ) {
-    case "FINISHED":
-      return "Finalizada";
-
-    case "OFFLINE":
-      return "Offline";
-
-    case "TIMEOUT":
-      return "Tempo esgotado";
-
-    case "ERROR":
-      return "Erro";
-
-    default:
-      return result;
-  }
 }
 
 export function HistoricoPage() {
-  const [
-    items,
-    setItems,
-  ] =
-    useState<
-      VerificationHistory[]
-    >([]);
+  const [items, setItems] = useState<VerificationHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const [
-    loading,
-    setLoading,
-  ] =
-    useState(true);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [target, setTarget] = useState("ALL");
+  const [running, setRunning] = useState(false);
 
-  const [
-    error,
-    setError,
-  ] =
-    useState<
-      string | null
-    >(null);
+  const [selectedVerification, setSelectedVerification] =
+    useState<VerificationHistory | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
-  const [
-    success,
-    setSuccess,
-  ] =
-    useState<
-      string | null
-    >(null);
+  const { sensors } = useSensors(false);
 
-  const [
-    verificationModalOpen,
-    setVerificationModalOpen,
-  ] =
-    useState(false);
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setError(null);
 
-  const [
-    detailModalOpen,
-    setDetailModalOpen,
-  ] =
-    useState(false);
+    try {
+      setItems(await getVerificationHistory());
+    } catch {
+      setError("Não foi possível carregar o histórico.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const [
-    target,
-    setTarget,
-  ] =
-    useState("ALL");
-
-  const [
-    running,
-    setRunning,
-  ] =
-    useState(false);
-
-  const [
-    selectedVerification,
-    setSelectedVerification,
-  ] =
-    useState<
-      VerificationHistory | null
-    >(null);
-
-  const [
-    detailLoading,
-    setDetailLoading,
-  ] =
-    useState(false);
-
-  const [
-    detailError,
-    setDetailError,
-  ] =
-    useState<
-      string | null
-    >(null);
-
-  const {
-    sensors,
-  } =
-    useSensors(false);
-
-  const load =
-    useCallback(
-      async (
-        showLoading = true,
-      ) => {
-        if (
-          showLoading
-        ) {
-          setLoading(
-            true,
-          );
-        }
-
-        setError(null);
-
-        try {
-          setItems(
-            await getVerificationHistory(),
-          );
-        } catch {
-          setError(
-            "Não foi possível carregar o histórico.",
-          );
-        } finally {
-          setLoading(
-            false,
-          );
-        }
-      },
-      [],
-    );
-
-  useEffect(
-    () => {
-      void load();
-    },
-    [load],
-  );
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   function abrirModalVerificacao() {
-    setTarget(
-      "ALL",
-    );
-
-    setError(
-      null,
-    );
-
-    setSuccess(
-      null,
-    );
-
-    setVerificationModalOpen(
-      true,
-    );
+    setTarget("ALL");
+    setError(null);
+    setSuccess(null);
+    setVerificationModalOpen(true);
   }
 
   function fecharModalVerificacao() {
-    if (
-      running
-    ) {
-      return;
-    }
-
-    setVerificationModalOpen(
-      false,
-    );
+    if (running) return;
+    setVerificationModalOpen(false);
   }
 
   async function iniciarVerificacao() {
-    setRunning(
-      true,
-    );
-
-    setError(
-      null,
-    );
-
-    setSuccess(
-      null,
-    );
+    setRunning(true);
+    setError(null);
+    setSuccess(null);
 
     try {
-      await runVerification(
-        target,
-      );
-
-      setVerificationModalOpen(
-        false,
-      );
+      await runVerification(target);
+      setVerificationModalOpen(false);
 
       setSuccess(
         target === "ALL"
@@ -292,279 +143,130 @@ export function HistoricoPage() {
           : `Verificação do ${target} concluída.`,
       );
 
-      await load(
-        false,
-      );
-    } catch (
-      exception
-    ) {
+      await load(false);
+    } catch (exception) {
       setError(
-        exception instanceof
-          Error
+        exception instanceof Error
           ? exception.message
           : "Não foi possível executar a verificação.",
       );
     } finally {
-      setRunning(
-        false,
-      );
+      setRunning(false);
     }
   }
 
-  async function abrirDetalhes(
-    id: number,
-  ) {
-    setDetailModalOpen(
-      true,
-    );
-
-    setDetailLoading(
-      true,
-    );
-
-    setDetailError(
-      null,
-    );
-
-    setSelectedVerification(
-      null,
-    );
+  async function abrirDetalhes(id: number) {
+    setDetailModalOpen(true);
+    setDetailLoading(true);
+    setDetailError(null);
+    setSelectedVerification(null);
 
     try {
-      const verification =
-        await getVerificationHistoryItem(
-          id,
-        );
-
-      setSelectedVerification(
-        verification,
-      );
-    } catch (
-      exception
-    ) {
+      const verification = await getVerificationHistoryItem(id);
+      setSelectedVerification(verification);
+    } catch (exception) {
       setDetailError(
-        exception instanceof
-          Error
+        exception instanceof Error
           ? exception.message
           : "Não foi possível carregar os detalhes da verificação.",
       );
     } finally {
-      setDetailLoading(
-        false,
-      );
+      setDetailLoading(false);
     }
   }
 
   function fecharDetalhes() {
-    if (
-      detailLoading
-    ) {
-      return;
-    }
-
-    setDetailModalOpen(
-      false,
-    );
-
-    setSelectedVerification(
-      null,
-    );
-
-    setDetailError(
-      null,
-    );
+    if (detailLoading) return;
+    setDetailModalOpen(false);
+    setSelectedVerification(null);
+    setDetailError(null);
   }
 
-  if (
-    loading
-  ) {
-    return (
-      <LoadingState message="Carregando verificações..." />
-    );
+  if (loading) {
+    return <LoadingState message="Carregando verificações..." />;
   }
 
   return (
     <>
       <section className="page-heading">
         <div>
-          <span className="eyebrow">
-            Infraestrutura
-          </span>
-
-          <h1>
-            Histórico de verificações
-          </h1>
-
-          <p>
-            Execuções realizadas pelos
-            sensores da infraestrutura.
-          </p>
+          <span className="eyebrow">Infraestrutura</span>
+          <h1>Histórico de verificações</h1>
+          <p>Execuções realizadas pelos sensores da infraestrutura.</p>
         </div>
 
         <div className="page-actions">
           <button
             type="button"
             className="button secondary compact"
-            onClick={() =>
-              void load(
-                false,
-              )
-            }
+            onClick={() => void load(false)}
           >
-            <RefreshCw
-              size={17}
-            />
-
+            <RefreshCw size={17} />
             Atualizar
           </button>
 
           <button
             type="button"
             className="button primary compact"
-            onClick={
-              abrirModalVerificacao
-            }
+            onClick={abrirModalVerificacao}
           >
-            <Play
-              size={17}
-            />
-
+            <Play size={17} />
             Nova verificação
           </button>
         </div>
       </section>
 
-      {error && (
-        <div className="alert error">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="alert success">
-          {success}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
+      {success && <div className="alert success">{success}</div>}
 
       <section className="panel">
         <div className="table-wrapper">
           <table className="data-table">
             <thead>
               <tr>
-                <th>
-                  Data
-                </th>
-
-                <th>
-                  Sensor
-                </th>
-
-                <th>
-                  Modo
-                </th>
-
-                <th>
-                  Resultado
-                </th>
-
-                <th>
-                  Duração
-                </th>
-
-                <th>
-                  Leituras
-                </th>
-
-                <th>
-                  Detalhes
-                </th>
+                <th>Data</th>
+                <th>Sensor</th>
+                <th>Modo</th>
+                <th>Resultado</th>
+                <th>Duração</th>
+                <th>Leituras</th>
+                <th>Detalhes</th>
               </tr>
             </thead>
 
             <tbody>
-              {items.map(
-                item => (
-                  <tr
-                    key={
-                      item.id
-                    }
-                  >
-                    <td>
-                      {formatDate(
-                        item.startedAt,
-                      )}
-                    </td>
+              {items.map(item => (
+                <tr key={item.id}>
+                  <td>{formatDate(item.startedAt)}</td>
+                  <td><strong>{item.nodeCode}</strong></td>
+                  <td>{translateMode(item.mode)}</td>
+                  <td>
+                    <span className={`verification-status ${resultClass(item.result)}`}>
+                      {translateResult(item.result)}
+                    </span>
+                  </td>
+                  <td>{formatDuration(item.durationMs)}</td>
+                  <td>{item.readings?.length ?? 0}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="row-action"
+                      onClick={() => void abrirDetalhes(item.id)}
+                    >
+                      <Eye size={15} />
+                      Ver detalhes
+                    </button>
+                  </td>
+                </tr>
+              ))}
 
-                    <td>
-                      <strong>
-                        {
-                          item.nodeCode
-                        }
-                      </strong>
-                    </td>
-
-                    <td>
-                      {translateMode(
-                        item.mode,
-                      )}
-                    </td>
-
-                    <td>
-                      {translateResult(
-                        item.result,
-                      )}
-                    </td>
-
-                    <td>
-                      {formatDuration(
-                        item.durationMs,
-                      )}
-                    </td>
-
-                    <td>
-                      {item.readings
-                        ?.length ??
-                        0}
-                    </td>
-
-                    <td>
-                      <button
-                        type="button"
-                        className="row-action"
-                        onClick={() =>
-                          void abrirDetalhes(
-                            item.id,
-                          )
-                        }
-                      >
-                        <Eye
-                          size={15}
-                        />
-
-                        Ver detalhes
-                      </button>
-                    </td>
-                  </tr>
-                ),
-              )}
-
-              {items.length ===
-                0 && (
+              {items.length === 0 && (
                 <tr>
                   <td
-                    colSpan={
-                      7
-                    }
-                    style={{
-                      textAlign:
-                        "center",
-
-                      padding:
-                        "35px",
-                    }}
+                    colSpan={7}
+                    style={{ textAlign: "center", padding: "35px" }}
                   >
-                    Nenhuma verificação
-                    registrada.
+                    Nenhuma verificação registrada.
                   </td>
                 </tr>
               )}
@@ -576,131 +278,60 @@ export function HistoricoPage() {
       {verificationModalOpen && (
         <div
           className="modal-overlay"
-          onMouseDown={
-            event => {
-              if (
-                event.target ===
-                event.currentTarget
-              ) {
-                fecharModalVerificacao();
-              }
+          onMouseDown={event => {
+            if (event.target === event.currentTarget) {
+              fecharModalVerificacao();
             }
-          }
+          }}
         >
           <div className="modal">
             <div className="modal-header">
               <div>
-                <span className="eyebrow">
-                  Infraestrutura
-                </span>
-
-                <h2
-                  style={{
-                    marginTop:
-                      "5px",
-                  }}
-                >
-                  Nova verificação
-                </h2>
+                <span className="eyebrow">Infraestrutura</span>
+                <h2 style={{ marginTop: 5 }}>Nova verificação</h2>
               </div>
 
               <button
                 type="button"
                 className="icon-button"
-                onClick={
-                  fecharModalVerificacao
-                }
-                disabled={
-                  running
-                }
+                onClick={fecharModalVerificacao}
+                disabled={running}
                 aria-label="Fechar"
               >
-                <X
-                  size={18}
-                />
+                <X size={18} />
               </button>
             </div>
 
-            <p
-              style={{
-                margin:
-                  "0 0 20px",
-
-                color:
-                  "var(--muted)",
-
-                fontSize:
-                  "0.82rem",
-
-                lineHeight:
-                  1.6,
-              }}
-            >
-              Escolha se deseja
-              verificar toda a
-              infraestrutura ou apenas
-              um sensor específico.
+            <p className="verification-intro">
+              Escolha se deseja verificar toda a infraestrutura
+              ou apenas um sensor específico.
             </p>
 
             <div className="field">
-              <label htmlFor="verification-target">
-                Sensor
-              </label>
-
+              <label htmlFor="verification-target">Sensor</label>
               <select
                 id="verification-target"
-                value={
-                  target
-                }
-                onChange={
-                  event =>
-                    setTarget(
-                      event
-                        .target
-                        .value,
-                    )
-                }
-                disabled={
-                  running
-                }
+                value={target}
+                onChange={event => setTarget(event.target.value)}
+                disabled={running}
               >
-                <option value="ALL">
-                  Todos os sensores
-                </option>
+                <option value="ALL">Todos os sensores</option>
 
-                {sensors.map(
-                  sensor => (
-                    <option
-                      key={
-                        sensor.id
-                      }
-                      value={
-                        sensor.code
-                      }
-                    >
-                      {
-                        sensor.code
-                      }
-
-                      {sensor.name
-                        ? ` — ${sensor.name}`
-                        : ""}
-                    </option>
-                  ),
-                )}
+                {sensors.map(sensor => (
+                  <option key={sensor.id} value={sensor.code}>
+                    {sensor.code}
+                    {sensor.name ? ` — ${sensor.name}` : ""}
+                  </option>
+                ))}
               </select>
             </div>
 
-            <div className="form-actions">
+            <div className="verification-modal-actions">
               <button
                 type="button"
                 className="button secondary"
-                onClick={
-                  fecharModalVerificacao
-                }
-                disabled={
-                  running
-                }
+                onClick={fecharModalVerificacao}
+                disabled={running}
               >
                 Cancelar
               </button>
@@ -708,27 +339,17 @@ export function HistoricoPage() {
               <button
                 type="button"
                 className="button primary"
-                onClick={() =>
-                  void iniciarVerificacao()
-                }
-                disabled={
-                  running
-                }
+                onClick={() => void iniciarVerificacao()}
+                disabled={running}
               >
                 {running ? (
                   <>
-                    <RefreshCw
-                      size={17}
-                    />
-
+                    <RefreshCw size={17} />
                     Executando...
                   </>
                 ) : (
                   <>
-                    <Play
-                      size={17}
-                    />
-
+                    <Play size={17} />
                     Iniciar verificação
                   </>
                 )}
@@ -741,54 +362,27 @@ export function HistoricoPage() {
       {detailModalOpen && (
         <div
           className="modal-overlay"
-          onMouseDown={
-            event => {
-              if (
-                event.target ===
-                event.currentTarget
-              ) {
-                fecharDetalhes();
-              }
+          onMouseDown={event => {
+            if (event.target === event.currentTarget) {
+              fecharDetalhes();
             }
-          }
+          }}
         >
-          <div
-            className="modal"
-            style={{
-              width:
-                "min(820px, 100%)",
-            }}
-          >
+          <div className="modal verification-detail-modal">
             <div className="modal-header">
               <div>
-                <span className="eyebrow">
-                  Diagnóstico
-                </span>
-
-                <h2
-                  style={{
-                    marginTop:
-                      "5px",
-                  }}
-                >
-                  Detalhes da verificação
-                </h2>
+                <span className="eyebrow">Diagnóstico</span>
+                <h2 style={{ marginTop: 5 }}>Detalhes da verificação</h2>
               </div>
 
               <button
                 type="button"
                 className="icon-button"
-                onClick={
-                  fecharDetalhes
-                }
-                disabled={
-                  detailLoading
-                }
+                onClick={fecharDetalhes}
+                disabled={detailLoading}
                 aria-label="Fechar"
               >
-                <X
-                  size={18}
-                />
+                <X size={18} />
               </button>
             </div>
 
@@ -797,293 +391,134 @@ export function HistoricoPage() {
             )}
 
             {detailError && (
-              <div className="alert error">
-                {detailError}
-              </div>
+              <div className="alert error">{detailError}</div>
             )}
 
             {selectedVerification && (
               <>
-                <div className="review-grid">
-                  <div className="review-item">
-                    <span>
-                      Sensor
-                    </span>
+                <section className="verification-summary">
+                  <div className="verification-summary-header">
+                    <div className="verification-sensor-title">
+                      <div className="verification-sensor-icon">
+                        <RadioTower size={22} />
+                      </div>
 
-                    <strong>
-                      {
-                        selectedVerification
-                          .nodeCode
-                      }
-                    </strong>
-                  </div>
+                      <div>
+                        <span className="verification-overline">
+                          SENSOR ANALISADO
+                        </span>
+                        <h3>{selectedVerification.nodeCode}</h3>
+                        <p>{selectedVerification.node?.name ?? "Sem nome cadastrado"}</p>
+                      </div>
+                    </div>
 
-                  <div className="review-item">
-                    <span>
-                      Nome
-                    </span>
-
-                    <strong>
-                      {selectedVerification
-                        .node?.name ??
-                        "—"}
-                    </strong>
-                  </div>
-
-                  <div className="review-item">
-                    <span>
-                      Modo
-                    </span>
-
-                    <strong>
-                      {translateMode(
-                        selectedVerification
-                          .mode,
-                      )}
-                    </strong>
-                  </div>
-
-                  <div className="review-item">
-                    <span>
-                      Resultado
-                    </span>
-
-                    <strong>
-                      {translateResult(
-                        selectedVerification
-                          .result,
-                      )}
-                    </strong>
-                  </div>
-
-                  <div className="review-item">
-                    <span>
-                      Início
-                    </span>
-
-                    <strong>
-                      {formatDate(
-                        selectedVerification
-                          .startedAt,
-                      )}
-                    </strong>
-                  </div>
-
-                  <div className="review-item">
-                    <span>
-                      Finalização
-                    </span>
-
-                    <strong>
-                      {formatDate(
-                        selectedVerification
-                          .finishedAt,
-                      )}
-                    </strong>
-                  </div>
-
-                  <div className="review-item">
-                    <span>
-                      Duração
-                    </span>
-
-                    <strong>
-                      {formatDuration(
-                        selectedVerification
-                          .durationMs,
-                      )}
-                    </strong>
-                  </div>
-
-                  <div className="review-item">
-                    <span>
-                      MAC
-                    </span>
-
-                    <strong>
-                      {selectedVerification
-                        .node?.mac ??
-                        "—"}
-                    </strong>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    marginTop:
-                      "24px",
-                  }}
-                >
-                  <div
-                    style={{
-                      marginBottom:
-                        "12px",
-                    }}
-                  >
-                    <span className="panel-eyebrow">
-                      LEITURAS BLE
-                    </span>
-
-                    <h3
-                      style={{
-                        margin:
-                          "5px 0 0",
-
-                        color:
-                          "var(--primary-deep)",
-
-                        fontSize:
-                          "1rem",
-                      }}
+                    <span
+                      className={`verification-status ${resultClass(selectedVerification.result)}`}
                     >
-                      Vizinhos detectados
-                    </h3>
+                      {selectedVerification.result === "OFFLINE" && (
+                        <WifiOff size={14} />
+                      )}
+                      {translateResult(selectedVerification.result)}
+                    </span>
                   </div>
 
-                  {(
-                    selectedVerification
-                      .readings ??
-                    []
-                  ).length ===
-                  0 ? (
+                  <div className="verification-detail-grid">
+                    <DetailItem
+                      label="Modo de verificação"
+                      value={translateMode(selectedVerification.mode)}
+                      icon={<Activity size={15} />}
+                    />
+
+                    <DetailItem
+                      label="Duração"
+                      value={formatDuration(selectedVerification.durationMs)}
+                      icon={<Clock3 size={15} />}
+                    />
+
+                    <DetailItem
+                      label="Início"
+                      value={formatDate(selectedVerification.startedAt)}
+                      icon={<CalendarClock size={15} />}
+                    />
+
+                    <DetailItem
+                      label="Finalização"
+                      value={formatDate(selectedVerification.finishedAt)}
+                      icon={<CalendarClock size={15} />}
+                    />
+
+                    <DetailItem
+                      label="Endereço MAC"
+                      value={selectedVerification.node?.mac ?? "—"}
+                      icon={<Cpu size={15} />}
+                      wide
+                    />
+                  </div>
+                </section>
+
+                <section className="verification-readings">
+                  <div className="verification-section-heading">
+                    <div>
+                      <span className="panel-eyebrow">LEITURAS BLE</span>
+                      <h3>Vizinhos detectados</h3>
+                    </div>
+                    <span className="verification-readings-count">
+                      {selectedVerification.readings?.length ?? 0} registros
+                    </span>
+                  </div>
+
+                  {(selectedVerification.readings ?? []).length === 0 ? (
                     <div className="empty-simple">
-                      Nenhum vizinho foi
-                      detectado nesta
-                      verificação.
+                      Nenhum vizinho foi detectado nesta verificação.
                     </div>
                   ) : (
                     <div className="table-wrapper">
                       <table className="data-table">
                         <thead>
                           <tr>
-                            <th>
-                              Vizinho
-                            </th>
-
-                            <th>
-                              MAC
-                            </th>
-
-                            <th>
-                              Leituras
-                            </th>
-
-                            <th>
-                              Válidas
-                            </th>
-
-                            <th>
-                              Descartadas
-                            </th>
-
-                            <th>
-                              RSSI médio
-                            </th>
-
-                            <th>
-                              M15
-                            </th>
-
-                            <th>
-                              Mín.
-                            </th>
-
-                            <th>
-                              Máx.
-                            </th>
+                            <th>Vizinho</th>
+                            <th>MAC</th>
+                            <th>Leituras</th>
+                            <th>Válidas</th>
+                            <th>Descartadas</th>
+                            <th>RSSI médio</th>
+                            <th>M15</th>
+                            <th>Mín.</th>
+                            <th>Máx.</th>
                           </tr>
                         </thead>
 
                         <tbody>
-                          {selectedVerification
-                            .readings
-                            ?.map(
-                              (
-                                reading,
-                                index,
-                              ) => (
-                                <tr
-                                  key={
-                                    reading.id ??
-                                    `${reading.mac}-${index}`
-                                  }
-                                >
-                                  <td>
-                                    <strong>
-                                      {reading
-                                        .neighborCode ??
-                                        "Não identificado"}
-                                    </strong>
-                                  </td>
-
-                                  <td>
-                                    {reading.mac ??
-                                      "—"}
-                                  </td>
-
-                                  <td>
-                                    {formatNumber(
-                                      reading.readings,
-                                    )}
-                                  </td>
-
-                                  <td>
-                                    {formatNumber(
-                                      reading.validReadings,
-                                    )}
-                                  </td>
-
-                                  <td>
-                                    {formatNumber(
-                                      reading.discardedReadings,
-                                    )}
-                                  </td>
-
-                                  <td>
-                                    {formatNumber(
-                                      reading.averageRssi,
-                                      " dBm",
-                                    )}
-                                  </td>
-
-                                  <td>
-                                    <strong>
-                                      {formatNumber(
-                                        reading.m15,
-                                        " dBm",
-                                      )}
-                                    </strong>
-                                  </td>
-
-                                  <td>
-                                    {formatNumber(
-                                      reading.minRssi,
-                                      " dBm",
-                                    )}
-                                  </td>
-
-                                  <td>
-                                    {formatNumber(
-                                      reading.maxRssi,
-                                      " dBm",
-                                    )}
-                                  </td>
-                                </tr>
-                              ),
-                            )}
+                          {selectedVerification.readings?.map((reading, index) => (
+                            <tr key={reading.id ?? `${reading.mac}-${index}`}>
+                              <td>
+                                <strong>
+                                  {reading.neighborCode ?? "Não identificado"}
+                                </strong>
+                              </td>
+                              <td>{reading.mac ?? "—"}</td>
+                              <td>{formatNumber(reading.readings)}</td>
+                              <td>{formatNumber(reading.validReadings)}</td>
+                              <td>{formatNumber(reading.discardedReadings)}</td>
+                              <td>{formatNumber(reading.averageRssi, " dBm")}</td>
+                              <td>
+                                <strong>{formatNumber(reading.m15, " dBm")}</strong>
+                              </td>
+                              <td>{formatNumber(reading.minRssi, " dBm")}</td>
+                              <td>{formatNumber(reading.maxRssi, " dBm")}</td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
                   )}
-                </div>
+                </section>
 
-                <div className="form-actions">
+                <div className="verification-modal-actions">
                   <button
                     type="button"
                     className="button secondary"
-                    onClick={
-                      fecharDetalhes
-                    }
+                    onClick={fecharDetalhes}
                   >
                     Fechar
                   </button>

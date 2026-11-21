@@ -1,0 +1,89 @@
+
+.sensor-edit-form {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.sensor-edit-form .form-grid {
+  margin-bottom: 22px;
+}
+
+.sensor-status-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin: 10px 0 8px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+
+.sensor-status-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sensor-status-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--primary);
+}
+
+.sensor-status-group .field-error {
+  width: 100%;
+}
+
+.sensor-edit-form .sensor-form-actions {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 20px 16px;
+  margin: 20px 0 0;
+  box-sizing: border-box;
+  border-top: 1px solid var(--border);
+}
+
+.sensor-form-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: auto;
+  min-height: 40px;
+  padding: 10px 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.sensor-form-actions .button svg {
+  flex-shrink: 0;
+}
+
+.sensor-form-actions .button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .sensor-edit-form .sensor-form-actions {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 18px 6px 8px;
+  }
+
+  .sensor-form-actions .button {
+    min-height: 38px;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}

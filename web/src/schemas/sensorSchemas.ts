@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 const optionalNumber = z
@@ -48,7 +49,13 @@ export const sensorSchema = z.object({
 
   active: z.boolean(),
   maintenance: z.boolean(),
-});
+}).refine(
+  data => !(data.active && data.maintenance),
+  {
+    message: "O sensor não pode estar habilitado e em manutenção ao mesmo tempo.",
+    path: ["maintenance"],
+  },
+);
 
 export type SensorFormData =
   z.infer<typeof sensorSchema>;

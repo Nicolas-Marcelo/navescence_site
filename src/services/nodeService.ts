@@ -1,3 +1,4 @@
+
 import type {
   NodeData,
   NodeRepository,
@@ -5,8 +6,7 @@ import type {
 
 export function createNodeService(
   repository: NodeRepository,
-  onNavigationUpdate:
-    () => void = () => {},
+  onNavigationUpdate: () => void = () => {},
 ) {
   function list() {
     return repository.findAll();
@@ -16,21 +16,20 @@ export function createNodeService(
     return repository.findOperational();
   }
 
-  function get(
-    id: number,
-  ) {
-    return repository.findById(
-      id,
-    );
+  function get(id: number) {
+    return repository.findById(id);
   }
 
-  async function create(
-    data: NodeData,
-  ) {
-    const code =
-      data.code
-        ?.trim()
-        .toUpperCase();
+  function validarStatus(active: boolean, maintenance: boolean) {
+    if (active && maintenance) {
+      throw new Error(
+        "O sensor não pode estar habilitado e em manutenção ao mesmo tempo.",
+      );
+    }
+  }
+
+  async function create(data: NodeData) {
+    const code = data.code?.trim().toUpperCase();
 
     if (!code) {
       throw new Error(
@@ -38,28 +37,20 @@ export function createNodeService(
       );
     }
 
-    const node =
-      await repository.create({
-        ...data,
+    validarStatus(
+      data.active ?? true,
+      data.maintenance ?? false,
+    );
 
-        code,
+    const node = await repository.create({
+      ...data,
 
-        mac:
-          data.mac
-            ?.trim()
-            .toUpperCase() ||
-          null,
+      code,
 
-        name:
-          data.name
-            ?.trim() ||
-          null,
-
-        location:
-          data.location
-            ?.trim() ||
-          null,
-      });
+      mac: data.mac?.trim().toUpperCase() || null,
+      name: data.name?.trim() || null,
+      location: data.location?.trim() || null,
+    });
 
     onNavigationUpdate();
 
@@ -68,58 +59,36 @@ export function createNodeService(
 
   async function update(
     id: number,
-    data:
-      Partial<NodeData>,
+    data: Partial<NodeData>,
   ) {
-    const node =
-      await repository.findById(
-        id,
-      );
+    const node = await repository.findById(id);
 
-    if (!node) {
-      return null;
-    }
+    if (!node) return null;
 
-    const updated =
-      await repository.update(
-        id,
-        {
-          ...data,
+    const active = data.active ?? node.active;
+    const maintenance = data.maintenance ?? node.maintenance;
 
-          code:
-            data.code ===
-            undefined
-              ? undefined
-              : data.code
-                  .trim()
-                  .toUpperCase(),
+    validarStatus(active, maintenance);
 
-          mac:
-            data.mac ===
-            undefined
-              ? undefined
-              : data.mac
-                  ?.trim()
-                  .toUpperCase() ||
-                null,
+    const updated = await repository.update(id, {
+      ...data,
 
-          name:
-            data.name ===
-            undefined
-              ? undefined
-              : data.name
-                  ?.trim() ||
-                null,
+      code: data.code === undefined
+        ? undefined
+        : data.code.trim().toUpperCase(),
 
-          location:
-            data.location ===
-            undefined
-              ? undefined
-              : data.location
-                  ?.trim() ||
-                null,
-        },
-      );
+      mac: data.mac === undefined
+        ? undefined
+        : data.mac?.trim().toUpperCase() || null,
+
+      name: data.name === undefined
+        ? undefined
+        : data.name?.trim() || null,
+
+      location: data.location === undefined
+        ? undefined
+        : data.location?.trim() || null,
+    });
 
     onNavigationUpdate();
 
@@ -131,65 +100,39 @@ export function createNodeService(
     active?: boolean,
     maintenance?: boolean,
   ) {
-    const node =
-      await repository.findById(
-        id,
-      );
+    const node = await repository.findById(id);
 
-    if (!node) {
-      return null;
-    }
+    if (!node) return null;
 
-    const updated =
-      await repository.update(
-        id,
-        {
-          active,
-          maintenance,
-        },
-      );
+    const novoActive = active ?? node.active;
+    const novoMaintenance = maintenance ?? node.maintenance;
+
+    validarStatus(novoActive, novoMaintenance);
+
+    const updated = await repository.update(id, {
+      active,
+      maintenance,
+    });
 
     onNavigationUpdate();
 
     return updated;
   }
 
-  async function remove(
-    id: number,
-  ) {
-    const node =
-      await repository.findById(
-        id,
-      );
+  async function remove(id: number) {
+    const node = await repository.findById(id);
 
-    if (!node) {
-      return null;
+    if (!node) return null;
+
+    if (node._count.pointsOfInterest > 0) {
+      throw new Error("SENSOR_HAS_POIS");
     }
 
-    if (
-      node._count
-        .pointsOfInterest >
-      0
-    ) {
-      throw new Error(
-        "SENSOR_HAS_POIS",
-      );
+    if (node._count.poiApproachesFrom > 0) {
+      throw new Error("SENSOR_HAS_POI_APPROACHES");
     }
 
-    if (
-      node._count
-        .poiApproachesFrom >
-      0
-    ) {
-      throw new Error(
-        "SENSOR_HAS_POI_APPROACHES",
-      );
-    }
-
-    const removed =
-      await repository.remove(
-        id,
-      );
+    const removed = await repository.remove(id);
 
     onNavigationUpdate();
 
@@ -208,6 +151,4 @@ export function createNodeService(
 }
 
 export type NodeService =
-  ReturnType<
-    typeof createNodeService
-  >;
+  ReturnType<typeof createNodeService>;

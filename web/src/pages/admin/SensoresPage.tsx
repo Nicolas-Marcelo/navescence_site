@@ -1,620 +1,252 @@
-import {
-  Pencil,
-  Plus,
-  RadioTower,
-  RefreshCw,
-  Trash2,
-} from "lucide-react";
 
-import {
-  useMemo,
-  useState,
-} from "react";
+import { Pencil, Plus, RadioTower, RefreshCw, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-  useForm,
-} from "react-hook-form";
+import { ConfirmDialog, ReviewItem } from "../../components/ui/ConfirmDialog";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { Modal } from "../../components/ui/Modal";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import { useEnvironment } from "../../context/EnvironmentContext";
+import { useSensors } from "../../hooks/useSensors";
+import { sensorSchema, type SensorFormData } from "../../schemas/sensorSchemas";
+import { createSensor, deleteSensor, updateSensor } from "../../services/sensorService";
+import { apiErrorMessage } from "../../services/apiMessages";
+import type { Sensor, SensorPayload } from "../../types/sensor";
 
-import {
-  zodResolver,
-} from "@hookform/resolvers/zod";
-
-import {
-  ConfirmDialog,
-  ReviewItem,
-} from "../../components/ui/ConfirmDialog";
-
-import {
-  LoadingState,
-} from "../../components/ui/LoadingState";
-
-import {
-  Modal,
-} from "../../components/ui/Modal";
-
-import {
-  StatusBadge,
-} from "../../components/ui/StatusBadge";
-
-import {
-  useEnvironment,
-} from "../../context/EnvironmentContext";
-
-import {
-  useSensors,
-} from "../../hooks/useSensors";
-
-import {
-  sensorSchema,
-  type SensorFormData,
-} from "../../schemas/sensorSchemas";
-
-import {
-  createSensor,
-  deleteSensor,
-  updateSensor,
-} from "../../services/sensorService";
-
-import {
-  apiErrorMessage,
-} from "../../services/apiMessages";
-
-import type {
-  Sensor,
-  SensorPayload,
-} from "../../types/sensor";
+import "./SensoresPage.css";
 
 export function SensoresPage() {
-  const {
-    sensors,
-    dashboard,
-    loading,
-    error,
-    reload,
-  } = useSensors(true);
+  const { sensors, dashboard, loading, error, reload } = useSensors(true);
+  const { environments, selectedEnvironmentId } = useEnvironment();
 
-  const {
-    environments,
-    selectedEnvironmentId,
-  } = useEnvironment();
-
-  const [
-    search,
-    setSearch,
-  ] =
-    useState("");
-
-  const [
-    modalOpen,
-    setModalOpen,
-  ] =
-    useState(false);
-
-  const [
-    confirmOpen,
-    setConfirmOpen,
-  ] =
-    useState(false);
-
-  const [
-    deleteOpen,
-    setDeleteOpen,
-  ] =
-    useState(false);
-
-  const [
-    editingSensor,
-    setEditingSensor,
-  ] =
-    useState<
-      Sensor | null
-    >(null);
-
-  const [
-    pendingData,
-    setPendingData,
-  ] =
-    useState<
-      SensorFormData | null
-    >(null);
-
-  const [
-    saving,
-    setSaving,
-  ] =
-    useState(false);
-
-  const [
-    deleting,
-    setDeleting,
-  ] =
-    useState(false);
-
-  const [
-    serverError,
-    setServerError,
-  ] =
-    useState<
-      string | null
-    >(null);
+  const [search, setSearch] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editingSensor, setEditingSensor] = useState<Sensor | null>(null);
+  const [pendingData, setPendingData] = useState<SensorFormData | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
-
-    formState: {
-      errors,
+    setValue,
+    formState: { errors },
+  } = useForm<SensorFormData>({
+    resolver: zodResolver(sensorSchema),
+    defaultValues: {
+      code: "",
+      name: "",
+      mac: "",
+      environmentId: "",
+      location: "",
+      x: "",
+      y: "",
+      active: true,
+      maintenance: false,
     },
-  } =
-    useForm<
-      SensorFormData
-    >({
-      resolver:
-        zodResolver(
-          sensorSchema,
-        ),
+  });
 
-      defaultValues: {
-        code: "",
-        name: "",
-        mac: "",
-        environmentId:
-          "",
-        location: "",
-        x: "",
-        y: "",
-        active: true,
-        maintenance:
-          false,
-      },
-    });
+  const filtered = useMemo(() => {
+    let result = [...sensors];
 
-  const filtered =
-    useMemo(
-      () => {
-        let result =
-          [...sensors];
+    if (selectedEnvironmentId !== "ALL") {
+      result = result.filter(
+        sensor => sensor.environmentId === selectedEnvironmentId,
+      );
+    }
 
-        if (
-          selectedEnvironmentId !==
-          "ALL"
-        ) {
-          result =
-            result.filter(
-              sensor =>
-                sensor.environmentId ===
-                selectedEnvironmentId,
-            );
-        }
+    const query = search.trim().toLowerCase();
 
-        const query =
-          search
-            .trim()
-            .toLowerCase();
+    if (query) {
+      result = result.filter(sensor => {
+        const value = [
+          sensor.code,
+          sensor.name ?? "",
+          sensor.mac ?? "",
+          sensor.location ?? "",
+          sensor.environment?.name ?? "",
+        ].join(" ").toLowerCase();
 
-        if (query) {
-          result =
-            result.filter(
-              sensor => {
-                const value =
-                  `${sensor.code} ` +
-                  `${sensor.name ?? ""} ` +
-                  `${sensor.mac ?? ""} ` +
-                  `${sensor.location ?? ""} ` +
-                  `${sensor.environment?.name ?? ""}`
-                    .toLowerCase();
+        return value.includes(query);
+      });
+    }
 
-                return value.includes(
-                  query,
-                );
-              },
-            );
-        }
-
-        return result.sort(
-          (
-            a,
-            b,
-          ) =>
-            a.code.localeCompare(
-              b.code,
-              undefined,
-              {
-                numeric:
-                  true,
-              },
-            ),
-        );
-      },
-      [
-        sensors,
-        search,
-        selectedEnvironmentId,
-      ],
+    return result.sort((a, b) =>
+      a.code.localeCompare(b.code, undefined, { numeric: true }),
     );
+  }, [sensors, search, selectedEnvironmentId]);
 
   function novoSensor() {
-    setEditingSensor(
-      null,
-    );
-
-    setServerError(
-      null,
-    );
+    setEditingSensor(null);
+    setPendingData(null);
+    setServerError(null);
 
     reset({
       code: "",
       name: "",
       mac: "",
-      environmentId:
-        "",
+      environmentId: "",
       location: "",
       x: "",
       y: "",
       active: true,
-      maintenance:
-        false,
+      maintenance: false,
     });
 
-    setModalOpen(
-      true,
-    );
+    setModalOpen(true);
   }
 
-  function editarSensor(
-    sensor: Sensor,
-  ) {
-    setEditingSensor(
-      sensor,
-    );
-
-    setServerError(
-      null,
-    );
+  function editarSensor(sensor: Sensor) {
+    setEditingSensor(sensor);
+    setPendingData(null);
+    setServerError(null);
 
     reset({
-      code:
-        sensor.code,
-
-      name:
-        sensor.name ??
-        "",
-
-      mac:
-        sensor.mac ??
-        "",
-
-      environmentId:
-        sensor.environmentId !==
-        null
-          ? String(
-              sensor.environmentId,
-            )
-          : "",
-
-      location:
-        sensor.location ??
-        "",
-
-      x:
-        sensor.x !==
-        null
-          ? String(
-              sensor.x,
-            )
-          : "",
-
-      y:
-        sensor.y !==
-        null
-          ? String(
-              sensor.y,
-            )
-          : "",
-
-      active:
-        sensor.active,
-
-      maintenance:
-        sensor.maintenance,
+      code: sensor.code,
+      name: sensor.name ?? "",
+      mac: sensor.mac ?? "",
+      environmentId: sensor.environmentId !== null
+        ? String(sensor.environmentId)
+        : "",
+      location: sensor.location ?? "",
+      x: sensor.x !== null ? String(sensor.x) : "",
+      y: sensor.y !== null ? String(sensor.y) : "",
+      active: sensor.active && !sensor.maintenance,
+      maintenance: sensor.maintenance,
     });
 
-    setModalOpen(
-      true,
-    );
+    setModalOpen(true);
   }
 
-  function revisar(
-    data:
-      SensorFormData,
-  ) {
-    setPendingData(
-      data,
-    );
-
-    setModalOpen(
-      false,
-    );
-
-    setConfirmOpen(
-      true,
-    );
+  function revisar(data: SensorFormData) {
+    setPendingData(data);
+    setModalOpen(false);
+    setConfirmOpen(true);
   }
 
   function voltarEdicao() {
-    setConfirmOpen(
-      false,
-    );
-
-    setModalOpen(
-      true,
-    );
+    setConfirmOpen(false);
+    setModalOpen(true);
   }
 
-  function environmentName(
-    value: string,
-  ) {
-    if (!value) {
-      return "Nenhum";
-    }
+  function environmentName(value: string) {
+    if (!value) return "Nenhum";
 
-    return (
-      environments.find(
-        item =>
-          item.id ===
-          Number(
-            value,
-          ),
-      )?.name ??
-      "Desconhecido"
-    );
+    return environments.find(
+      environment => environment.id === Number(value),
+    )?.name ?? "Desconhecido";
   }
 
   async function confirmar() {
-    if (!pendingData) {
-      return;
-    }
+    if (!pendingData) return;
 
-    setSaving(
-      true,
-    );
+    setSaving(true);
+    setServerError(null);
 
-    setServerError(
-      null,
-    );
-
-    const payload:
-      SensorPayload = {
-      code:
-        pendingData
-          .code
-          .trim(),
-
-      name:
-        pendingData
-          .name
-          .trim() ||
-        null,
-
-      mac:
-        pendingData
-          .mac
-          .trim() ||
-        null,
-
-      environmentId:
-        pendingData
-          .environmentId
-          ? Number(
-              pendingData
-                .environmentId,
-            )
-          : null,
-
-      location:
-        pendingData
-          .location
-          .trim() ||
-        null,
-
-      x:
-        pendingData.x ===
-        ""
-          ? null
-          : Number(
-              pendingData.x,
-            ),
-
-      y:
-        pendingData.y ===
-        ""
-          ? null
-          : Number(
-              pendingData.y,
-            ),
-
-      active:
-        pendingData.active,
-
-      maintenance:
-        pendingData
-          .maintenance,
+    const payload: SensorPayload = {
+      code: pendingData.code.trim(),
+      name: pendingData.name.trim() || null,
+      mac: pendingData.mac.trim() || null,
+      environmentId: pendingData.environmentId
+        ? Number(pendingData.environmentId)
+        : null,
+      location: pendingData.location.trim() || null,
+      x: pendingData.x === "" ? null : Number(pendingData.x),
+      y: pendingData.y === "" ? null : Number(pendingData.y),
+      active: pendingData.active && !pendingData.maintenance,
+      maintenance: pendingData.maintenance,
     };
 
     try {
-      if (
-        editingSensor
-      ) {
-        await updateSensor(
-          editingSensor.id,
-          payload,
-        );
+      if (editingSensor) {
+        await updateSensor(editingSensor.id, payload);
       } else {
-        await createSensor(
-          payload,
-        );
+        await createSensor(payload);
       }
 
-      setConfirmOpen(
-        false,
-      );
-
-      setPendingData(
-        null,
-      );
-
+      setConfirmOpen(false);
+      setPendingData(null);
       await reload();
     } catch (error) {
-      setConfirmOpen(
-        false,
-      );
-
-      setModalOpen(
-        true,
-      );
-
+      setConfirmOpen(false);
+      setModalOpen(true);
       setServerError(
-        apiErrorMessage(
-          error,
-          "Não foi possível salvar o sensor.",
-        ),
+        apiErrorMessage(error, "Não foi possível salvar o sensor."),
       );
     } finally {
-      setSaving(
-        false,
-      );
+      setSaving(false);
     }
   }
 
   function pedirExclusao() {
-    if (
-      !editingSensor
-    ) {
-      return;
-    }
-
-    setDeleteOpen(
-      true,
-    );
+    if (!editingSensor) return;
+    setDeleteOpen(true);
   }
 
   async function confirmarExclusao() {
-    if (
-      !editingSensor
-    ) {
-      return;
-    }
+    if (!editingSensor) return;
 
-    setDeleting(
-      true,
-    );
-
-    setServerError(
-      null,
-    );
+    setDeleting(true);
+    setServerError(null);
 
     try {
-      await deleteSensor(
-        editingSensor.id,
-      );
-
-      setDeleteOpen(
-        false,
-      );
-
-      setModalOpen(
-        false,
-      );
-
-      setEditingSensor(
-        null,
-      );
-
+      await deleteSensor(editingSensor.id);
+      setDeleteOpen(false);
+      setModalOpen(false);
+      setEditingSensor(null);
       await reload();
     } catch (error) {
-      setDeleteOpen(
-        false,
-      );
-
-      setModalOpen(
-        true,
-      );
-
+      setDeleteOpen(false);
+      setModalOpen(true);
       setServerError(
-        apiErrorMessage(
-          error,
-          "Não foi possível excluir o sensor.",
-        ),
+        apiErrorMessage(error, "Não foi possível excluir o sensor."),
       );
     } finally {
-      setDeleting(
-        false,
-      );
+      setDeleting(false);
     }
   }
 
   if (loading) {
-    return (
-      <LoadingState message="Carregando sensores..." />
-    );
+    return <LoadingState message="Carregando sensores..." />;
   }
 
   return (
     <>
       <section className="page-heading">
         <div>
-          <span className="eyebrow">
-            Infraestrutura
-          </span>
-
-          <h1>
-            Sensores
-          </h1>
-
-          <p>
-            Nós responsáveis pela
-            infraestrutura de
-            localização.
-          </p>
+          <span className="eyebrow">Infraestrutura</span>
+          <h1>Sensores</h1>
+          <p>Nós responsáveis pela infraestrutura de localização.</p>
         </div>
 
         <div className="page-actions">
           <button
             type="button"
             className="button secondary"
-            onClick={() =>
-              void reload()
-            }
+            onClick={() => void reload()}
           >
-            <RefreshCw
-              size={17}
-            />
-
+            <RefreshCw size={17} />
             Atualizar
           </button>
 
           <button
             type="button"
             className="button primary"
-            onClick={
-              novoSensor
-            }
+            onClick={novoSensor}
           >
-            <Plus
-              size={17}
-            />
-
+            <Plus size={17} />
             Novo sensor
           </button>
         </div>
       </section>
 
-      {error && (
-        <div className="alert error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert error">{error}</div>}
 
       <section className="simple-toolbar">
         <input
@@ -622,383 +254,266 @@ export function SensoresPage() {
           autoComplete="off"
           placeholder="Buscar sensor..."
           value={search}
-          onChange={
-            event =>
-              setSearch(
-                event
-                  .target
-                  .value,
-              )
-          }
+          onChange={event => setSearch(event.target.value)}
         />
 
         <span>
-          {
-            filtered.length
-          }{" "}
-          {filtered.length ===
-          1
-            ? "sensor"
-            : "sensores"}
+          {filtered.length} {filtered.length === 1 ? "sensor" : "sensores"}
         </span>
       </section>
 
       <section className="simple-list">
-        {filtered.map(
-          sensor => {
-            const runtime =
-              dashboard.nodes[
-                sensor.code
-              ];
+        {filtered.map(sensor => {
+          const runtime = dashboard.nodes[sensor.code];
 
-            return (
-              <article
-                key={
-                  sensor.id
-                }
-                className="simple-row"
+          return (
+            <article key={sensor.id} className="simple-row">
+              <div className="simple-row-icon">
+                <RadioTower size={19} />
+              </div>
+
+              <div className="simple-row-main">
+                <strong>{sensor.code}</strong>
+                <span>{sensor.name ?? "Sensor NAVESCENCE"}</span>
+              </div>
+
+              <div className="simple-row-meta">
+                <span>Ambiente</span>
+                <strong>{sensor.environment?.name ?? "—"}</strong>
+              </div>
+
+              <StatusBadge value={runtime?.presence ?? "UNKNOWN"} />
+
+              <button
+                type="button"
+                className="row-action"
+                onClick={() => editarSensor(sensor)}
               >
-                <div className="simple-row-icon">
-                  <RadioTower
-                    size={19}
-                  />
-                </div>
-
-                <div className="simple-row-main">
-                  <strong>
-                    {
-                      sensor.code
-                    }
-                  </strong>
-
-                  <span>
-                    {
-                      sensor.name ??
-                      "Sensor NAVESCENCE"
-                    }
-                  </span>
-                </div>
-
-                <div className="simple-row-meta">
-                  <span>
-                    Ambiente
-                  </span>
-
-                  <strong>
-                    {
-                      sensor.environment
-                        ?.name ??
-                      "—"
-                    }
-                  </strong>
-                </div>
-
-                <StatusBadge
-                  value={
-                    runtime
-                      ?.presence ??
-                    "UNKNOWN"
-                  }
-                />
-
-                <button
-                  type="button"
-                  className="row-action"
-                  onClick={() =>
-                    editarSensor(
-                      sensor,
-                    )
-                  }
-                >
-                  <Pencil
-                    size={16}
-                  />
-
-                  Editar
-                </button>
-              </article>
-            );
-          },
-        )}
+                <Pencil size={16} />
+                Editar
+              </button>
+            </article>
+          );
+        })}
       </section>
 
       <Modal
         open={modalOpen}
-        title={
-          editingSensor
-            ? `Editar ${editingSensor.code}`
-            : "Novo sensor"
+        title={editingSensor
+          ? `Editar ${editingSensor.code}`
+          : "Novo sensor"
         }
-        onClose={() =>
-          setModalOpen(
-            false,
-          )
-        }
+        onClose={() => setModalOpen(false)}
       >
         {serverError && (
-          <div className="alert error">
-            {serverError}
-          </div>
+          <div className="alert error">{serverError}</div>
         )}
 
         <form
-          onSubmit={
-            handleSubmit(
-              revisar,
-            )
-          }
+          className="sensor-edit-form"
+          onSubmit={handleSubmit(revisar)}
           autoComplete="off"
           noValidate
         >
           <div className="form-grid">
             <div className="field">
-              <label
-                htmlFor="sensor-code"
-              >
-                Código *
-              </label>
-
+              <label htmlFor="sensor-code">Código *</label>
               <input
                 id="sensor-code"
                 type="text"
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={30}
-                {...register(
-                  "code",
-                )}
+                {...register("code")}
               />
-
               {errors.code && (
-                <span className="field-error">
-                  {
-                    errors.code
-                      .message
-                  }
-                </span>
+                <span className="field-error">{errors.code.message}</span>
               )}
             </div>
 
             <div className="field">
-              <label
-                htmlFor="sensor-name"
-              >
-                Nome
-              </label>
-
+              <label htmlFor="sensor-name">Nome</label>
               <input
                 id="sensor-name"
                 type="text"
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={100}
-                {...register(
-                  "name",
-                )}
+                {...register("name")}
               />
-
               {errors.name && (
-                <span className="field-error">
-                  {
-                    errors.name
-                      .message
-                  }
-                </span>
+                <span className="field-error">{errors.name.message}</span>
               )}
             </div>
 
             <div className="field field-full">
-              <label
-                htmlFor="sensor-mac"
-              >
-                MAC
-              </label>
-
+              <label htmlFor="sensor-mac">MAC</label>
               <input
                 id="sensor-mac"
                 type="text"
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={17}
-                {...register(
-                  "mac",
-                )}
+                {...register("mac")}
               />
-
               {errors.mac && (
-                <span className="field-error">
-                  {
-                    errors.mac
-                      .message
-                  }
-                </span>
+                <span className="field-error">{errors.mac.message}</span>
               )}
             </div>
 
             <div className="field field-full">
-              <label
-                htmlFor="sensor-environment"
-              >
-                Ambiente
-              </label>
-
+              <label htmlFor="sensor-environment">Ambiente</label>
               <select
                 id="sensor-environment"
-                {...register(
-                  "environmentId",
-                )}
+                {...register("environmentId")}
               >
-                <option value="">
-                  Nenhum ambiente
-                </option>
-
-                {environments.map(
-                  environment => (
-                    <option
-                      key={
-                        environment.id
-                      }
-                      value={
-                        environment.id
-                      }
-                    >
-                      {
-                        environment.name
-                      }
-                    </option>
-                  ),
-                )}
+                <option value="">Nenhum ambiente</option>
+                {environments.map(environment => (
+                  <option key={environment.id} value={environment.id}>
+                    {environment.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="field field-full">
-              <label
-                htmlFor="sensor-location"
-              >
-                Localização
-              </label>
-
+              <label htmlFor="sensor-location">Localização</label>
               <input
                 id="sensor-location"
                 type="text"
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={150}
-                {...register(
-                  "location",
-                )}
+                {...register("location")}
               />
             </div>
 
             <div className="field">
-              <label
-                htmlFor="sensor-x"
-              >
-                Posição X
-              </label>
-
+              <label htmlFor="sensor-x">Posição X</label>
               <input
                 id="sensor-x"
                 type="text"
                 autoComplete="off"
                 inputMode="decimal"
                 spellCheck={false}
-                {...register(
-                  "x",
-                )}
+                {...register("x")}
               />
-
               {errors.x && (
-                <span className="field-error">
-                  {
-                    errors.x
-                      .message
-                  }
-                </span>
+                <span className="field-error">{errors.x.message}</span>
               )}
             </div>
 
             <div className="field">
-              <label
-                htmlFor="sensor-y"
-              >
-                Posição Y
-              </label>
-
+              <label htmlFor="sensor-y">Posição Y</label>
               <input
                 id="sensor-y"
                 type="text"
                 autoComplete="off"
                 inputMode="decimal"
                 spellCheck={false}
-                {...register(
-                  "y",
-                )}
+                {...register("y")}
               />
-
               {errors.y && (
-                <span className="field-error">
-                  {
-                    errors.y
-                      .message
-                  }
-                </span>
+                <span className="field-error">{errors.y.message}</span>
               )}
             </div>
           </div>
 
-          <div className="checkbox-group">
-            <label>
+          <div className="sensor-status-group">
+            <label className="sensor-status-option">
               <input
                 type="checkbox"
-                {...register(
-                  "active",
-                )}
+                {...register("active", {
+                  onChange: event => {
+                    if (event.target.checked) {
+                      setValue("maintenance", false, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
+                  },
+                })}
               />
-
               Sensor habilitado
             </label>
 
-            <label>
+            <label className="sensor-status-option">
               <input
                 type="checkbox"
-                {...register(
-                  "maintenance",
-                )}
+                {...register("maintenance", {
+                  onChange: event => {
+                    if (event.target.checked) {
+                      setValue("active", false, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
+                  },
+                })}
               />
-
               Em manutenção
             </label>
+
+            {errors.maintenance && (
+              <span className="field-error">
+                {errors.maintenance.message}
+              </span>
+            )}
           </div>
 
-          <footer className="form-actions split">
-            <div>
+          <footer
+            className="sensor-form-actions"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "auto minmax(0, 1fr) auto",
+              alignItems: "center",
+              columnGap: "12px",
+              padding: "20px 16px",
+              marginTop: "20px",
+              width: "100%",
+              boxSizing: "border-box",
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               {editingSensor && (
                 <button
                   type="button"
                   className="button danger-button"
-                  onClick={
-                    pedirExclusao
-                  }
+                  onClick={pedirExclusao}
+                  style={{ width: "auto", whiteSpace: "nowrap" }}
                 >
-                  <Trash2
-                    size={16}
-                  />
-
+                  <Trash2 size={16} />
                   Excluir
                 </button>
               )}
             </div>
 
-            <div>
+            <div />
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: "10px",
+                minWidth: 0,
+              }}
+            >
               <button
                 type="button"
                 className="button secondary"
-                onClick={() =>
-                  setModalOpen(
-                    false,
-                  )
-                }
+                onClick={() => setModalOpen(false)}
+                style={{
+                  width: "auto",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
               >
                 Cancelar
               </button>
@@ -1006,6 +521,11 @@ export function SensoresPage() {
               <button
                 type="submit"
                 className="button primary"
+                style={{
+                  width: "auto",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
               >
                 Revisar cadastro
               </button>
@@ -1016,78 +536,38 @@ export function SensoresPage() {
 
       <ConfirmDialog
         open={confirmOpen}
-        title={
-          editingSensor
-            ? "Confirmar alteração"
-            : "Confirmar novo sensor"
+        title={editingSensor
+          ? "Confirmar alteração"
+          : "Confirmar novo sensor"
         }
         description="Confira as informações antes de gravar no sistema."
-        confirmLabel={
-          editingSensor
-            ? "Confirmar alteração"
-            : "Criar sensor"
+        confirmLabel={editingSensor
+          ? "Confirmar alteração"
+          : "Criar sensor"
         }
         cancelLabel="Voltar e editar"
         loading={saving}
-        onCancel={
-          voltarEdicao
-        }
-        onConfirm={() =>
-          void confirmar()
-        }
+        onCancel={voltarEdicao}
+        onConfirm={() => void confirmar()}
       >
         {pendingData && (
           <div className="review-grid">
-            <ReviewItem
-              label="Código"
-              value={
-                pendingData.code
-              }
-            />
-
-            <ReviewItem
-              label="Nome"
-              value={
-                pendingData.name ||
-                "Sem nome"
-              }
-            />
-
-            <ReviewItem
-              label="MAC"
-              value={
-                pendingData.mac ||
-                "Não informado"
-              }
-            />
-
+            <ReviewItem label="Código" value={pendingData.code} />
+            <ReviewItem label="Nome" value={pendingData.name || "Sem nome"} />
+            <ReviewItem label="MAC" value={pendingData.mac || "Não informado"} />
             <ReviewItem
               label="Ambiente"
-              value={
-                environmentName(
-                  pendingData
-                    .environmentId,
-                )
-              }
+              value={environmentName(pendingData.environmentId)}
             />
-
             <ReviewItem
               label="Localização"
-              value={
-                pendingData.location ||
-                "Não informada"
-              }
+              value={pendingData.location || "Não informada"}
             />
-
             <ReviewItem
               label="Posição"
-              value={
-                pendingData.x !==
-                  "" ||
-                pendingData.y !==
-                  ""
-                  ? `X: ${pendingData.x || "—"} / Y: ${pendingData.y || "—"}`
-                  : "Não informada"
+              value={pendingData.x !== "" || pendingData.y !== ""
+                ? `X: ${pendingData.x || "—"} / Y: ${pendingData.y || "—"}`
+                : "Não informada"
               }
             />
           </div>
@@ -1103,43 +583,18 @@ export function SensoresPage() {
         destructive
         loading={deleting}
         onCancel={() => {
-          setDeleteOpen(
-            false,
-          );
-
-          setModalOpen(
-            true,
-          );
+          setDeleteOpen(false);
+          setModalOpen(true);
         }}
-        onConfirm={() =>
-          void confirmarExclusao()
-        }
+        onConfirm={() => void confirmarExclusao()}
       >
         {editingSensor && (
           <div className="review-grid">
-            <ReviewItem
-              label="Sensor"
-              value={
-                editingSensor.code
-              }
-            />
-
-            <ReviewItem
-              label="Nome"
-              value={
-                editingSensor.name ??
-                "Sem nome"
-              }
-            />
-
+            <ReviewItem label="Sensor" value={editingSensor.code} />
+            <ReviewItem label="Nome" value={editingSensor.name ?? "Sem nome"} />
             <ReviewItem
               label="Ambiente"
-              value={
-                editingSensor
-                  .environment
-                  ?.name ??
-                "Nenhum"
-              }
+              value={editingSensor.environment?.name ?? "Nenhum"}
             />
           </div>
         )}

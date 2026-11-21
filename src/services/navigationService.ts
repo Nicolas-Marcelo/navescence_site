@@ -2,6 +2,10 @@
 import type { EdgeRepository } from "../repositories/edgeRepository.js";
 import type { NodeRepository } from "../repositories/nodeRepository.js";
 import type { PoiRepository } from "../repositories/poiRepository.js";
+import {
+  loadTactileMap,
+  type TactileMap,
+} from "./tactileMapService.js";
 
 export interface NavigationNode {
   id: string;
@@ -42,18 +46,20 @@ export interface NavigationConfig {
   nodes: NavigationNode[];
   edges: NavigationEdge[];
   pois: NavigationPoi[];
+  tactileMap: TactileMap;
 }
 
 export function createNavigationService(
   nodeRepository: NodeRepository,
   edgeRepository: EdgeRepository,
-  poiRepository: PoiRepository
+  poiRepository: PoiRepository,
 ) {
   async function getConfig(environmentId?: number): Promise<NavigationConfig> {
-    const [allNodes, allEdges, allPois] = await Promise.all([
+    const [allNodes, allEdges, allPois, tactileMap] = await Promise.all([
       nodeRepository.findOperational(),
       edgeRepository.findOperational(),
-      poiRepository.findOperational()
+      poiRepository.findOperational(),
+      loadTactileMap(),
     ]);
 
     const nodes = environmentId === undefined
@@ -102,7 +108,7 @@ export function createNavigationService(
     );
 
     return {
-      version: 2,
+      version: 3,
       generatedAt: new Date().toISOString(),
       environmentId: environmentId ?? null,
 
@@ -111,13 +117,13 @@ export function createNavigationService(
         mac: node.mac ?? null,
         advertisingName: node.name?.trim() || node.code,
         x: node.x as number,
-        y: node.y as number
+        y: node.y as number,
       })),
 
       edges: edges.map(edge => ({
         origin: edge.nodeA.code,
         destination: edge.nodeB.code,
-        distance: edge.distance as number
+        distance: edge.distance as number,
       })),
 
       pois: pois.map(poi => ({
@@ -135,9 +141,11 @@ export function createNavigationService(
             fromNodeId: approach.fromNode.code,
             side: approach.side,
             distanceMeters: approach.distanceMeters ?? null,
-            instruction: approach.instruction ?? null
-          }))
-      }))
+            instruction: approach.instruction ?? null,
+          })),
+      })),
+
+      tactileMap,
     };
   }
 

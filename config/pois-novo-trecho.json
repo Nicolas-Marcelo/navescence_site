@@ -1,0 +1,27 @@
+
+{
+  "pois": [
+    {
+      "code": "INFORMATICA",
+      "name": "Sala de Informática",
+      "nodeId": "NAV_S02",
+      "x": 2,
+      "y": 4,
+      "edgeStartNodeId": "NAV_S02",
+      "edgeEndNodeId": "NAV_S01",
+      "edgePosition": 0.2,
+      "active": true
+    },
+    {
+      "code": "DESCANSO",
+      "name": "Sala de Descanso",
+      "nodeId": "NAV_S01",
+      "x": 2,
+      "y": 2,
+      "edgeStartNodeId": "NAV_S02",
+      "edgeEndNodeId": "NAV_S01",
+      "edgePosition": 0.6,
+      "active": true
+    }
+  ]
+}

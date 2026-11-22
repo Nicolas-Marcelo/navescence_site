@@ -1,37 +1,15 @@
-import {
-  Building2,
-  Pencil,
-  Plus,
-} from "lucide-react";
 
-import {
-  useState,
-} from "react";
+import { Building2, Pencil, Plus } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-  useForm,
-} from "react-hook-form";
+import { ConfirmDialog, ReviewItem } from "../../components/ui/ConfirmDialog";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { Modal } from "../../components/ui/Modal";
+import ImportarAmbiente from "../../components/ImportarAmbiente";
 
-import {
-  zodResolver,
-} from "@hookform/resolvers/zod";
-
-import {
-  ConfirmDialog,
-  ReviewItem,
-} from "../../components/ui/ConfirmDialog";
-
-import {
-  LoadingState,
-} from "../../components/ui/LoadingState";
-
-import {
-  Modal,
-} from "../../components/ui/Modal";
-
-import {
-  useEnvironment,
-} from "../../context/EnvironmentContext";
+import { useEnvironment } from "../../context/EnvironmentContext";
 
 import {
   environmentSchema,
@@ -44,9 +22,7 @@ import {
   updateEnvironment,
 } from "../../services/environmentService";
 
-import {
-  apiErrorMessage,
-} from "../../services/apiMessages";
+import { apiErrorMessage } from "../../services/apiMessages";
 
 import type {
   Environment,
@@ -60,77 +36,32 @@ export function AmbientesPage() {
     reloadEnvironments,
   } = useEnvironment();
 
-  const [
-    modalOpen,
-    setModalOpen,
-  ] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const [
-    confirmOpen,
-    setConfirmOpen,
-  ] = useState(false);
+  const [editing, setEditing] = useState<Environment | null>(null);
+  const [pendingData, setPendingData] = useState<EnvironmentFormData | null>(null);
 
-  const [
-    deleteOpen,
-    setDeleteOpen,
-  ] = useState(false);
-
-  const [
-    editing,
-    setEditing,
-  ] = useState<
-    Environment | null
-  >(null);
-
-  const [
-    pendingData,
-    setPendingData,
-  ] = useState<
-    EnvironmentFormData | null
-  >(null);
-
-  const [
-    saving,
-    setSaving,
-  ] = useState(false);
-
-  const [
-    deleting,
-    setDeleting,
-  ] = useState(false);
-
-  const [
-    serverError,
-    setServerError,
-  ] = useState<
-    string | null
-  >(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
-
-    formState: {
-      errors,
+    formState: { errors },
+  } = useForm<EnvironmentFormData>({
+    resolver: zodResolver(environmentSchema),
+    defaultValues: {
+      code: "",
+      name: "",
+      type: "",
+      floor: "",
+      description: "",
     },
-  } =
-    useForm<
-      EnvironmentFormData
-    >({
-      resolver:
-        zodResolver(
-          environmentSchema,
-        ),
-
-      defaultValues: {
-        code: "",
-        name: "",
-        type: "",
-        floor: "",
-        description: "",
-      },
-    });
+  });
 
   function novo() {
     setEditing(null);
@@ -147,111 +78,57 @@ export function AmbientesPage() {
     setModalOpen(true);
   }
 
-  function editar(
-    environment:
-      Environment,
-  ) {
-    setEditing(
-      environment,
-    );
-
+  function editar(environment: Environment) {
+    setEditing(environment);
     setServerError(null);
 
     reset({
-      code:
-        environment.code,
-
-      name:
-        environment.name,
-
-      type:
-        environment.type ??
-        "",
-
-      floor:
-        environment.floor ??
-        "",
-
-      description:
-        environment.description ??
-        "",
+      code: environment.code,
+      name: environment.name,
+      type: environment.type ?? "",
+      floor: environment.floor ?? "",
+      description: environment.description ?? "",
     });
 
     setModalOpen(true);
   }
 
-  function revisar(
-    data:
-      EnvironmentFormData,
-  ) {
+  function revisar(data: EnvironmentFormData) {
     setPendingData(data);
-
     setModalOpen(false);
     setConfirmOpen(true);
   }
 
   async function confirmar() {
-    if (!pendingData) {
-      return;
-    }
+    if (!pendingData) return;
 
     setSaving(true);
     setServerError(null);
 
-    const payload:
-      EnvironmentPayload = {
-      code:
-        pendingData
-          .code
-          .trim()
-          .toUpperCase(),
-
-      name:
-        pendingData
-          .name
-          .trim(),
-
-      type:
-        pendingData.type ||
-        null,
-
-      floor:
-        pendingData
-          .floor
-          .trim(),
-
-      description:
-        pendingData
-          .description
-          .trim() ||
-        null,
+    const payload: EnvironmentPayload = {
+      code: pendingData.code.trim().toUpperCase(),
+      name: pendingData.name.trim(),
+      type: pendingData.type || null,
+      floor: pendingData.floor.trim(),
+      description: pendingData.description.trim() || null,
     };
 
     try {
       if (editing) {
-        await updateEnvironment(
-          editing.id,
-          payload,
-        );
+        await updateEnvironment(editing.id, payload);
       } else {
-        await createEnvironment(
-          payload,
-        );
+        await createEnvironment(payload);
       }
 
       setConfirmOpen(false);
       setPendingData(null);
-
       await reloadEnvironments();
     } catch (error) {
       setConfirmOpen(false);
       setModalOpen(true);
 
       setServerError(
-        apiErrorMessage(
-          error,
-          "Não foi possível salvar o ambiente.",
-        ),
+        apiErrorMessage(error, "Não foi possível salvar o ambiente."),
       );
     } finally {
       setSaving(false);
@@ -259,26 +136,20 @@ export function AmbientesPage() {
   }
 
   function pedirExclusao() {
-    if (!editing) {
-      return;
-    }
+    if (!editing) return;
 
     setServerError(null);
     setDeleteOpen(true);
   }
 
   async function confirmarExclusao() {
-    if (!editing) {
-      return;
-    }
+    if (!editing) return;
 
     setDeleting(true);
     setServerError(null);
 
     try {
-      await deleteEnvironment(
-        editing.id,
-      );
+      await deleteEnvironment(editing.id);
 
       setDeleteOpen(false);
       setModalOpen(false);
@@ -290,288 +161,185 @@ export function AmbientesPage() {
       setModalOpen(true);
 
       setServerError(
-        apiErrorMessage(
-          error,
-          "Não foi possível excluir o ambiente.",
-        ),
+        apiErrorMessage(error, "Não foi possível excluir o ambiente."),
       );
     } finally {
       setDeleting(false);
     }
   }
 
+  async function aposImportar() {
+    try {
+      await reloadEnvironments();
+    } catch (error) {
+      console.error("[AMBIENTES] Erro ao atualizar lista:", error);
+    }
+  }
+
   if (loading) {
-    return (
-      <LoadingState message="Carregando ambientes..." />
-    );
+    return <LoadingState message="Carregando ambientes..." />;
   }
 
   return (
     <>
       <section className="page-heading">
         <div>
-          <span className="eyebrow">
-            Estrutura física
-          </span>
-
-          <h1>
-            Ambientes
-          </h1>
+          <span className="eyebrow">Estrutura física</span>
+          <h1>Ambientes</h1>
 
           <p>
-            Espaços atendidos pela
-            infraestrutura NAVESCENCE.
+            Espaços atendidos pela infraestrutura NAVESCENCE.
           </p>
         </div>
 
-        <button
-          type="button"
-          className="button primary"
-          onClick={novo}
-        >
-          <Plus size={17} />
+        <div style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}>
+          <ImportarAmbiente onImported={aposImportar} />
 
-          Novo ambiente
-        </button>
+          <button
+            type="button"
+            className="button primary"
+            onClick={novo}
+          >
+            <Plus size={17} />
+            Novo ambiente
+          </button>
+        </div>
       </section>
 
       <section className="simple-list">
-        {environments.map(
-          environment => (
-            <article
-              key={
-                environment.id
-              }
-              className="simple-row"
+        {environments.map(environment => (
+          <article
+            key={environment.id}
+            className="simple-row"
+          >
+            <div className="simple-row-icon">
+              <Building2 size={19} />
+            </div>
+
+            <div className="simple-row-main">
+              <strong>{environment.name}</strong>
+              <span>{environment.code}</span>
+            </div>
+
+            <div className="simple-row-meta">
+              <span>Pavimento</span>
+              <strong>{environment.floor ?? "—"}</strong>
+            </div>
+
+            <div className="simple-row-meta">
+              <span>Sensores</span>
+              <strong>{environment._count?.nodes ?? 0}</strong>
+            </div>
+
+            <button
+              type="button"
+              className="row-action"
+              onClick={() => editar(environment)}
             >
-              <div className="simple-row-icon">
-                <Building2
-                  size={19}
-                />
-              </div>
-
-              <div className="simple-row-main">
-                <strong>
-                  {
-                    environment.name
-                  }
-                </strong>
-
-                <span>
-                  {
-                    environment.code
-                  }
-                </span>
-              </div>
-
-              <div className="simple-row-meta">
-                <span>
-                  Pavimento
-                </span>
-
-                <strong>
-                  {
-                    environment.floor ??
-                    "—"
-                  }
-                </strong>
-              </div>
-
-              <div className="simple-row-meta">
-                <span>
-                  Sensores
-                </span>
-
-                <strong>
-                  {
-                    environment
-                      ._count
-                      ?.nodes ??
-                    0
-                  }
-                </strong>
-              </div>
-
-              <button
-                type="button"
-                className="row-action"
-                onClick={() =>
-                  editar(
-                    environment,
-                  )
-                }
-              >
-                <Pencil
-                  size={16}
-                />
-
-                Editar
-              </button>
-            </article>
-          ),
-        )}
+              <Pencil size={16} />
+              Editar
+            </button>
+          </article>
+        ))}
       </section>
 
       <Modal
         open={modalOpen}
-        title={
-          editing
-            ? `Editar ${editing.name}`
-            : "Novo ambiente"
-        }
-        onClose={() =>
-          setModalOpen(false)
-        }
+        title={editing ? `Editar ${editing.name}` : "Novo ambiente"}
+        onClose={() => setModalOpen(false)}
       >
         {serverError && (
-          <div className="alert error">
-            {serverError}
-          </div>
+          <div className="alert error">{serverError}</div>
         )}
 
         <form
-          onSubmit={
-            handleSubmit(
-              revisar,
-            )
-          }
+          onSubmit={handleSubmit(revisar)}
           autoComplete="off"
           noValidate
         >
           <div className="form-grid">
             <div className="field">
-              <label>
-                Código *
-              </label>
+              <label>Código *</label>
 
               <input
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={30}
-                {...register(
-                  "code",
-                )}
+                {...register("code")}
               />
 
               {errors.code && (
                 <span className="field-error">
-                  {
-                    errors.code
-                      .message
-                  }
+                  {errors.code.message}
                 </span>
               )}
             </div>
 
             <div className="field">
-              <label>
-                Nome *
-              </label>
+              <label>Nome *</label>
 
               <input
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={100}
-                {...register(
-                  "name",
-                )}
+                {...register("name")}
               />
 
               {errors.name && (
                 <span className="field-error">
-                  {
-                    errors.name
-                      .message
-                  }
+                  {errors.name.message}
                 </span>
               )}
             </div>
 
             <div className="field">
-              <label>
-                Tipo
-              </label>
+              <label>Tipo</label>
 
-              <select
-                {...register(
-                  "type",
-                )}
-              >
-                <option value="">
-                  Selecione
-                </option>
-
-                <option value="CORREDOR">
-                  Corredor
-                </option>
-
-                <option value="SALA">
-                  Sala
-                </option>
-
-                <option value="RECEPCAO">
-                  Recepção
-                </option>
-
-                <option value="BIBLIOTECA">
-                  Biblioteca
-                </option>
-
-                <option value="AREA_COMUM">
-                  Área comum
-                </option>
-
-                <option value="OUTRO">
-                  Outro
-                </option>
+              <select {...register("type")}>
+                <option value="">Selecione</option>
+                <option value="CORREDOR">Corredor</option>
+                <option value="SALA">Sala</option>
+                <option value="RECEPCAO">Recepção</option>
+                <option value="BIBLIOTECA">Biblioteca</option>
+                <option value="AREA_COMUM">Área comum</option>
+                <option value="OUTRO">Outro</option>
               </select>
             </div>
 
             <div className="field">
-              <label>
-                Pavimento *
-              </label>
+              <label>Pavimento *</label>
 
               <input
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={40}
-                {...register(
-                  "floor",
-                )}
+                {...register("floor")}
               />
 
               {errors.floor && (
                 <span className="field-error">
-                  {
-                    errors.floor
-                      .message
-                  }
+                  {errors.floor.message}
                 </span>
               )}
             </div>
 
             <div className="field field-full">
-              <label>
-                Descrição
-              </label>
+              <label>Descrição</label>
 
               <textarea
                 rows={4}
                 maxLength={200}
-                {...register(
-                  "description",
-                )}
+                {...register("description")}
               />
 
-              {errors
-                .description && (
+              {errors.description && (
                 <span className="field-error">
-                  {
-                    errors
-                      .description
-                      .message
-                  }
+                  {errors.description.message}
                 </span>
               )}
             </div>
@@ -583,9 +351,7 @@ export function AmbientesPage() {
                 <button
                   type="button"
                   className="button danger-button"
-                  onClick={
-                    pedirExclusao
-                  }
+                  onClick={pedirExclusao}
                 >
                   Excluir
                 </button>
@@ -596,11 +362,7 @@ export function AmbientesPage() {
               <button
                 type="button"
                 className="button secondary"
-                onClick={() =>
-                  setModalOpen(
-                    false,
-                  )
-                }
+                onClick={() => setModalOpen(false)}
               >
                 Cancelar
               </button>
@@ -618,57 +380,28 @@ export function AmbientesPage() {
 
       <ConfirmDialog
         open={confirmOpen}
-        title={
-          editing
-            ? "Confirmar alteração"
-            : "Confirmar novo ambiente"
-        }
+        title={editing ? "Confirmar alteração" : "Confirmar novo ambiente"}
         description="Confira as informações antes de continuar."
         loading={saving}
-        confirmLabel={
-          editing
-            ? "Confirmar alteração"
-            : "Criar ambiente"
-        }
+        confirmLabel={editing ? "Confirmar alteração" : "Criar ambiente"}
         cancelLabel="Voltar e editar"
         onCancel={() => {
           setConfirmOpen(false);
           setModalOpen(true);
         }}
-        onConfirm={() =>
-          void confirmar()
-        }
+        onConfirm={() => void confirmar()}
       >
         {pendingData && (
           <div className="review-grid">
-            <ReviewItem
-              label="Código"
-              value={
-                pendingData.code
-              }
-            />
-
-            <ReviewItem
-              label="Nome"
-              value={
-                pendingData.name
-              }
-            />
+            <ReviewItem label="Código" value={pendingData.code} />
+            <ReviewItem label="Nome" value={pendingData.name} />
 
             <ReviewItem
               label="Tipo"
-              value={
-                pendingData.type ||
-                "Não definido"
-              }
+              value={pendingData.type || "Não definido"}
             />
 
-            <ReviewItem
-              label="Pavimento"
-              value={
-                pendingData.floor
-              }
-            />
+            <ReviewItem label="Pavimento" value={pendingData.floor} />
           </div>
         )}
       </ConfirmDialog>
@@ -685,25 +418,12 @@ export function AmbientesPage() {
           setDeleteOpen(false);
           setModalOpen(true);
         }}
-        onConfirm={() =>
-          void confirmarExclusao()
-        }
+        onConfirm={() => void confirmarExclusao()}
       >
         {editing && (
           <div className="review-grid">
-            <ReviewItem
-              label="Ambiente"
-              value={
-                editing.name
-              }
-            />
-
-            <ReviewItem
-              label="Código"
-              value={
-                editing.code
-              }
-            />
+            <ReviewItem label="Ambiente" value={editing.name} />
+            <ReviewItem label="Código" value={editing.code} />
           </div>
         )}
       </ConfirmDialog>

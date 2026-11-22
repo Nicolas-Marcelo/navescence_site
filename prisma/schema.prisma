@@ -125,20 +125,23 @@ model Node {
   @@map("nodes")
 }
 
+
 model Environment {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique @db.VarChar(30)
-  name        String   @db.VarChar(100)
-  type        String?  @db.VarChar(40)
-  floor       String   @default("Térreo") @db.VarChar(40)
-  description String?  @db.VarChar(200)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  code             String   @unique @db.VarChar(30)
+  name             String   @db.VarChar(100)
+  type             String?  @db.VarChar(40)
+  floor            String   @default("Térreo") @db.VarChar(40)
+  description      String?  @db.VarChar(200)
+  navigationConfig Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   nodes Node[]
 
   @@map("environments")
 }
+
 
 model Edge {
   id        Int      @id @default(autoincrement())

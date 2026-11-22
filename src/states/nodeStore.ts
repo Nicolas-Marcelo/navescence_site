@@ -1,3 +1,4 @@
+
 import type { NodeId } from "../config/nodes.js";
 import { createNodeState, type NodeState, Presence, NodeStatus } from "../models/node.js";
 import type { ScanReading } from "../models/scan.js";
@@ -19,55 +20,73 @@ export interface NodeStore {
 export function createNodeStore(): NodeStore {
   const states: Record<NodeId, NodeState> = {};
 
-  function get(nodeId: NodeId) {
-    return states[nodeId];
+  function get(nodeId: NodeId): NodeState {
+    const state = states[nodeId];
+
+    if (!state) {
+      throw new Error(`Sensor não encontrado no NodeStore: ${nodeId}`);
+    }
+
+    return state;
   }
 
-  function getAll() {
+  function getAll(): Readonly<Record<NodeId, NodeState>> {
     return states;
   }
 
-  function getIds() {
+  function getIds(): NodeId[] {
     return Object.keys(states);
   }
 
-  function has(nodeId: NodeId) {
-    return nodeId in states;
+  function has(nodeId: NodeId): boolean {
+    return Object.hasOwn(states, nodeId);
   }
 
-  function sync(nodeIds: NodeId[]) {
+  function sync(nodeIds: NodeId[]): void {
     const registered = new Set(nodeIds);
 
     for (const nodeId of nodeIds) {
-      if (!states[nodeId]) states[nodeId] = createNodeState();
+      if (!has(nodeId)) {
+        states[nodeId] = createNodeState();
+      }
     }
 
     for (const nodeId of Object.keys(states)) {
-      if (!registered.has(nodeId)) delete states[nodeId];
+      if (!registered.has(nodeId)) {
+        delete states[nodeId];
+      }
     }
   }
 
-  function setPresence(nodeId: NodeId, presence: Presence) {
-    states[nodeId].presence = presence;
-    states[nodeId].lastCommunication = nowIso();
+  function setPresence(nodeId: NodeId, presence: Presence): void {
+    const state = get(nodeId);
+
+    state.presence = presence;
+    state.lastCommunication = nowIso();
   }
 
-  function setStatus(nodeId: NodeId, status: NodeStatus) {
-    states[nodeId].status = status;
-    states[nodeId].lastCommunication = nowIso();
+  function setStatus(nodeId: NodeId, status: NodeStatus): void {
+    const state = get(nodeId);
+
+    state.status = status;
+    state.lastCommunication = nowIso();
   }
 
-  function addScan(nodeId: NodeId, scan: ScanReading) {
-    states[nodeId].scans.push(scan);
-    states[nodeId].lastCommunication = nowIso();
+  function addScan(nodeId: NodeId, scan: ScanReading): void {
+    const state = get(nodeId);
+
+    state.scans.push(scan);
+    state.lastCommunication = nowIso();
   }
 
-  function clearScans(nodeId: NodeId) {
-    states[nodeId].scans = [];
+  function clearScans(nodeId: NodeId): void {
+    const state = get(nodeId);
+    state.scans = [];
   }
 
-  function finishVerification(nodeId: NodeId) {
-    states[nodeId].lastVerification = nowIso();
+  function finishVerification(nodeId: NodeId): void {
+    const state = get(nodeId);
+    state.lastVerification = nowIso();
   }
 
   return {
@@ -80,6 +99,6 @@ export function createNodeStore(): NodeStore {
     setStatus,
     addScan,
     clearScans,
-    finishVerification
+    finishVerification,
   };
 }

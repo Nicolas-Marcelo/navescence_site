@@ -1,6 +1,8 @@
 
-import express from "express";
+import express, { type RequestHandler } from "express";
 import { createServer as createHttpServer } from "node:http";
+
+import type { PrismaClient } from "../generated/prisma/client.js";
 
 import { config } from "../config/env.js";
 
@@ -34,6 +36,15 @@ import { registerNavigationRoutes } from "./navigationRoutes.js";
 import { registerSensorDeleteRoutes } from "./sensorDeleteRoutes.js";
 import { registerRoutes, type VerificationControl } from "./routes.js";
 
+import {
+  createEnvironmentImportRouter,
+} from "../routes/environmentImportRoutes.js";
+
+export interface EnvironmentImportDependencies {
+  prisma: PrismaClient;
+  requireAdmin: RequestHandler;
+}
+
 export function createWebServer(
   store: NodeStore,
   topology: TopologyStore,
@@ -46,6 +57,7 @@ export function createWebServer(
   alertService: AlertService,
   verificationControl: VerificationControl,
   syncInfrastructure: () => Promise<void>,
+  environmentImport?: EnvironmentImportDependencies,
 ) {
   const app = express();
   const httpServer = createHttpServer(app);
@@ -96,6 +108,21 @@ export function createWebServer(
     () => socket.sendNavigationConfigUpdated(null),
   );
 
+  if (environmentImport) {
+    app.use(
+      "/api/admin/environment-imports",
+      environmentImport.requireAdmin,
+      createEnvironmentImportRouter(environmentImport.prisma),
+    );
+
+    console.log("[AMBIENTES] Importação JSON administrativa habilitada.");
+  } else {
+    console.log(
+      "[AMBIENTES] Importação JSON desabilitada: "
+      + "dependências administrativas não configuradas.",
+    );
+  }
+
   app.get("/api/health", (_request, response) => {
     response.json({
       status: "ok",
@@ -142,6 +169,13 @@ export function createWebServer(
         console.log(
           `Health: http://localhost:${config.web.port}/api/health`,
         );
+
+        if (environmentImport) {
+          console.log(
+            `Importação JSON: http://localhost:${config.web.port}/api/admin/environment-imports`,
+          );
+        }
+
         console.log("Segurança HTTP: ATIVA");
         console.log("Rotas administrativas: ADMIN");
 

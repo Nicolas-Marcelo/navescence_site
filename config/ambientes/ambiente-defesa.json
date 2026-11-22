@@ -1,0 +1,154 @@
+
+{
+  "environment": {
+    "code": "AREA_DEFESA",
+    "name": "Área de Testes da Defesa",
+    "type": "EXPERIMENTAL",
+    "floor": "Térreo",
+    "description": "Ambiente experimental em formato de T, com cinco sensores ESP32 e sete pontos de interesse, destinado à demonstração do NAVESCENCE na defesa."
+  },
+  "sensors": [
+    { "nodeId": "NAV_S01", "x": 0, "y": 10 },
+    { "nodeId": "NAV_S02", "x": 5, "y": 10 },
+    { "nodeId": "NAV_S03", "x": 10, "y": 10 },
+    { "nodeId": "NAV_S04", "x": 5, "y": 5 },
+    { "nodeId": "NAV_S05", "x": 5, "y": 0 }
+  ],
+  "connections": [
+    { "from": "NAV_S01", "to": "NAV_S02", "distance": 5 },
+    { "from": "NAV_S02", "to": "NAV_S03", "distance": 5 },
+    { "from": "NAV_S02", "to": "NAV_S04", "distance": 5 },
+    { "from": "NAV_S04", "to": "NAV_S05", "distance": 5 }
+  ],
+  "pois": [
+    {
+      "code": "ATIVIDADES",
+      "name": "Sala de Atividades",
+      "nodeId": "NAV_S01",
+      "x": -1,
+      "y": 10
+    },
+    {
+      "code": "DESCANSO",
+      "name": "Sala de Descanso",
+      "nodeId": "NAV_S02",
+      "x": 2.5,
+      "y": 12,
+      "edgeStartNodeId": "NAV_S01",
+      "edgeEndNodeId": "NAV_S02",
+      "edgePosition": 0.5
+    },
+    {
+      "code": "INFORMATICA",
+      "name": "Sala de Informática",
+      "nodeId": "NAV_S02",
+      "x": 7,
+      "y": 12,
+      "edgeStartNodeId": "NAV_S02",
+      "edgeEndNodeId": "NAV_S03",
+      "edgePosition": 0.4
+    },
+    {
+      "code": "COORDENACAO",
+      "name": "Coordenação",
+      "nodeId": "NAV_S03",
+      "x": 12,
+      "y": 10
+    },
+    {
+      "code": "RECEPCAO",
+      "name": "Recepção",
+      "nodeId": "NAV_S04",
+      "x": 2,
+      "y": 3,
+      "edgeStartNodeId": "NAV_S04",
+      "edgeEndNodeId": "NAV_S05",
+      "edgePosition": 0.4
+    },
+    {
+      "code": "BANHEIRO",
+      "name": "Banheiro",
+      "nodeId": "NAV_S04",
+      "x": 7,
+      "y": 7,
+      "edgeStartNodeId": "NAV_S02",
+      "edgeEndNodeId": "NAV_S04",
+      "edgePosition": 0.6
+    },
+    {
+      "code": "ENTRADA",
+      "name": "Entrada",
+      "nodeId": "NAV_S05",
+      "x": 5,
+      "y": -2
+    }
+  ],
+  "tactileMap": {
+    "version": 1,
+    "nodes": [
+      { "id": "NAV_S01", "kind": "BLE", "x": 0, "y": 10 },
+      { "id": "NAV_S02", "kind": "BLE", "x": 5, "y": 10 },
+      { "id": "NAV_S03", "kind": "BLE", "x": 10, "y": 10 },
+      { "id": "NAV_S04", "kind": "BLE", "x": 5, "y": 5 },
+      { "id": "NAV_S05", "kind": "BLE", "x": 5, "y": 0 },
+      {
+        "id": "A01",
+        "kind": "ACCESS",
+        "x": 2.5,
+        "y": 10,
+        "label": "Acesso Descanso"
+      },
+      {
+        "id": "A02",
+        "kind": "ACCESS",
+        "x": 7,
+        "y": 10,
+        "label": "Acesso Informática"
+      },
+      {
+        "id": "A03",
+        "kind": "ACCESS",
+        "x": 5,
+        "y": 7,
+        "label": "Acesso Banheiro"
+      },
+      {
+        "id": "A04",
+        "kind": "ACCESS",
+        "x": 5,
+        "y": 3,
+        "label": "Acesso Recepção"
+      },
+      { "id": "POI:ATIVIDADES", "kind": "POI", "x": -1, "y": 10, "label": "Sala de Atividades" },
+      { "id": "POI:DESCANSO", "kind": "POI", "x": 2.5, "y": 12, "label": "Sala de Descanso" },
+      { "id": "POI:INFORMATICA", "kind": "POI", "x": 7, "y": 12, "label": "Sala de Informática" },
+      { "id": "POI:COORDENACAO", "kind": "POI", "x": 12, "y": 10, "label": "Coordenação" },
+      { "id": "POI:RECEPCAO", "kind": "POI", "x": 2, "y": 3, "label": "Recepção" },
+      { "id": "POI:BANHEIRO", "kind": "POI", "x": 7, "y": 7, "label": "Banheiro" },
+      { "id": "POI:ENTRADA", "kind": "POI", "x": 5, "y": -2, "label": "Entrada" }
+    ],
+    "edges": [
+      { "from": "NAV_S01", "to": "A01", "distance": 2.5 },
+      { "from": "A01", "to": "NAV_S02", "distance": 2.5 },
+      { "from": "NAV_S02", "to": "A02", "distance": 2 },
+      { "from": "A02", "to": "NAV_S03", "distance": 3 },
+      { "from": "NAV_S02", "to": "A03", "distance": 3 },
+      { "from": "A03", "to": "NAV_S04", "distance": 2 },
+      { "from": "NAV_S04", "to": "A04", "distance": 2 },
+      { "from": "A04", "to": "NAV_S05", "distance": 3 },
+      { "from": "NAV_S01", "to": "POI:ATIVIDADES", "distance": 1 },
+      { "from": "NAV_S03", "to": "POI:COORDENACAO", "distance": 2 },
+      { "from": "NAV_S05", "to": "POI:ENTRADA", "distance": 2 },
+      { "from": "A01", "to": "POI:DESCANSO", "distance": 2 },
+      { "from": "A02", "to": "POI:INFORMATICA", "distance": 2 },
+      { "from": "A03", "to": "POI:BANHEIRO", "distance": 2 },
+      { "from": "A04", "to": "POI:RECEPCAO", "distance": 3 }
+    ],
+    "poiAccesses": [
+      { "poiCode": "DESCANSO", "decisionId": "A01", "distance": 2 },
+      { "poiCode": "INFORMATICA", "decisionId": "A02", "distance": 2 },
+      { "poiCode": "BANHEIRO", "decisionId": "A03", "distance": 2 },
+      { "poiCode": "RECEPCAO", "decisionId": "A04", "distance": 3 }
+    ]
+  }
+}

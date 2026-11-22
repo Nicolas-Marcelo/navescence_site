@@ -1,6 +1,186 @@
 
 {
   "version": 1,
-  "nodes": [],
-  "edges": []
+  "nodes": [
+    {
+      "id": "NAV_S01",
+      "kind": "BLE",
+      "x": 1,
+      "y": 0,
+      "label": "Sensor 01"
+    },
+    {
+      "id": "NAV_S02",
+      "kind": "BLE",
+      "x": 1,
+      "y": 5,
+      "label": "Sensor 02"
+    },
+    {
+      "id": "NAV_S03",
+      "kind": "BLE",
+      "x": 1,
+      "y": 10,
+      "label": "Sensor 03"
+    },
+    {
+      "id": "D01",
+      "kind": "DECISION",
+      "x": 1,
+      "y": 6,
+      "label": "Ramificação Esportes"
+    },
+    {
+      "id": "D02",
+      "kind": "DECISION",
+      "x": 1,
+      "y": 8,
+      "label": "Ramificação Recreação"
+    },
+    {
+      "id": "D03",
+      "kind": "DECISION",
+      "x": 1,
+      "y": 9.8,
+      "label": "Ramificação Coordenação"
+    },
+    {
+      "id": "A04",
+      "kind": "ACCESS",
+      "x": 1,
+      "y": 4,
+      "label": "Acesso Informática"
+    },
+    {
+      "id": "A05",
+      "kind": "ACCESS",
+      "x": 1,
+      "y": 2,
+      "label": "Acesso Descanso"
+    },
+    {
+      "id": "POI:ESPORTES",
+      "kind": "POI",
+      "x": 0,
+      "y": 6,
+      "label": "Sala de Esportes"
+    },
+    {
+      "id": "POI:RECREACAO",
+      "kind": "POI",
+      "x": 0,
+      "y": 8,
+      "label": "Sala da Recreação"
+    },
+    {
+      "id": "POI:COORDENACAO",
+      "kind": "POI",
+      "x": 0,
+      "y": 10,
+      "label": "Sala da Coordenação"
+    },
+    {
+      "id": "POI:INFORMATICA",
+      "kind": "POI",
+      "x": 2,
+      "y": 4,
+      "label": "Sala de Informática"
+    },
+    {
+      "id": "POI:DESCANSO",
+      "kind": "POI",
+      "x": 2,
+      "y": 2,
+      "label": "Sala de Descanso"
+    }
+  ],
+  "edges": [
+    {
+      "from": "NAV_S01",
+      "to": "A05",
+      "distance": 2
+    },
+    {
+      "from": "A05",
+      "to": "A04",
+      "distance": 2
+    },
+    {
+      "from": "A04",
+      "to": "NAV_S02",
+      "distance": 1
+    },
+    {
+      "from": "NAV_S02",
+      "to": "D01",
+      "distance": 1
+    },
+    {
+      "from": "D01",
+      "to": "D02",
+      "distance": 2
+    },
+    {
+      "from": "D02",
+      "to": "D03",
+      "distance": 1.8
+    },
+    {
+      "from": "D03",
+      "to": "NAV_S03",
+      "distance": 0.2
+    },
+    {
+      "from": "D01",
+      "to": "POI:ESPORTES",
+      "distance": 1
+    },
+    {
+      "from": "D02",
+      "to": "POI:RECREACAO",
+      "distance": 1
+    },
+    {
+      "from": "D03",
+      "to": "POI:COORDENACAO",
+      "distance": 1.02
+    },
+    {
+      "from": "A04",
+      "to": "POI:INFORMATICA",
+      "distance": 1
+    },
+    {
+      "from": "A05",
+      "to": "POI:DESCANSO",
+      "distance": 1
+    }
+  ],
+  "poiAccesses": [
+    {
+      "poiCode": "ESPORTES",
+      "decisionId": "D01",
+      "distance": 1
+    },
+    {
+      "poiCode": "RECREACAO",
+      "decisionId": "D02",
+      "distance": 1
+    },
+    {
+      "poiCode": "COORDENACAO",
+      "decisionId": "D03",
+      "distance": 1.02
+    },
+    {
+      "poiCode": "INFORMATICA",
+      "decisionId": "A04",
+      "distance": 1
+    },
+    {
+      "poiCode": "DESCANSO",
+      "decisionId": "A05",
+      "distance": 1
+    }
+  ]
 }

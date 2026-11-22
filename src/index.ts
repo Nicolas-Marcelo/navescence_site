@@ -1,353 +1,202 @@
-import type {
-  NodeId,
-} from "./config/nodes.js";
 
-import {
-  createWebServer,
-} from "./api/server.js";
+import type { NodeId } from "./config/nodes.js";
 
-import {
-  createMqttService,
-} from "./mqtt/client.js";
+import { createWebServer } from "./api/server.js";
+import { requireAdmin } from "./auth/authMiddleware.js";
+import { prisma } from "./database/prisma.js";
+import { createMqttService } from "./mqtt/client.js";
 
-import {
-  createAlertRepository,
-} from "./repositories/alertRepository.js";
+import { createAlertRepository } from "./repositories/alertRepository.js";
+import { createEdgeRepository } from "./repositories/edgeRepository.js";
+import { createEnvironmentRepository } from "./repositories/environmentRepository.js";
+import { createNodeRepository } from "./repositories/nodeRepository.js";
+import { createPoiRepository } from "./repositories/poiRepository.js";
+import { createVerificationRepository } from "./repositories/verificationRepository.js";
 
-import {
-  createEdgeRepository,
-} from "./repositories/edgeRepository.js";
+import { createAlertService } from "./services/alertService.js";
+import { createCoordinator } from "./services/coordinator.js";
+import { getDashboard } from "./services/dashboard.js";
+import { createEnvironmentService } from "./services/environmentService.js";
+import { createNavigationService } from "./services/navigationService.js";
+import { createNodeService } from "./services/nodeService.js";
+import { createPoiService } from "./services/poiService.js";
+import { createTopologyService } from "./services/topologyService.js";
+import { createVerificationService } from "./services/verificationService.js";
 
-import {
-  createEnvironmentRepository,
-} from "./repositories/environmentRepository.js";
+import { createNodeStore } from "./states/nodeStore.js";
+import { createTopologyStore } from "./states/topologyStore.js";
+import { sleep } from "./utils/time.js";
 
-import {
-  createNodeRepository,
-} from "./repositories/nodeRepository.js";
+const store = createNodeStore();
+const topology = createTopologyStore();
 
-import {
-  createPoiRepository,
-} from "./repositories/poiRepository.js";
-
-import {
-  createVerificationRepository,
-} from "./repositories/verificationRepository.js";
-
-import {
-  createAlertService,
-} from "./services/alertService.js";
-
-import {
-  createCoordinator,
-} from "./services/coordinator.js";
-
-import {
-  getDashboard,
-} from "./services/dashboard.js";
-
-import {
-  createEnvironmentService,
-} from "./services/environmentService.js";
-
-import {
-  createNavigationService,
-} from "./services/navigationService.js";
-
-import {
-  createNodeService,
-} from "./services/nodeService.js";
-
-import {
-  createPoiService,
-} from "./services/poiService.js";
-
-import {
-  createTopologyService,
-} from "./services/topologyService.js";
-
-import {
-  createVerificationService,
-} from "./services/verificationService.js";
-
-import {
-  createNodeStore,
-} from "./states/nodeStore.js";
-
-import {
-  createTopologyStore,
-} from "./states/topologyStore.js";
-
-import {
-  sleep,
-} from "./utils/time.js";
-
-const store =
-  createNodeStore();
-
-const topology =
-  createTopologyStore();
-
-let emitDashboard =
-  () => {};
-
-let emitNavigationConfigUpdated =
-  (
-    _environmentId:
-      number | null =
-      null,
-  ) => {};
-
-let sendCheck =
-  (
-    _nodeId:
-      NodeId,
-  ) => {};
+let emitDashboard = () => {};
+let emitNavigationConfigUpdated = (_environmentId: number | null = null) => {};
+let sendCheck = (_nodeId: NodeId) => {};
 
 function notifyNavigationUpdate() {
-  emitNavigationConfigUpdated(
-    null,
-  );
+  emitNavigationConfigUpdated(null);
 }
 
-const nodeRepository =
-  createNodeRepository();
+const nodeRepository = createNodeRepository();
+const edgeRepository = createEdgeRepository();
+const environmentRepository = createEnvironmentRepository();
+const poiRepository = createPoiRepository();
+const verificationRepository = createVerificationRepository();
+const alertRepository = createAlertRepository();
 
-const edgeRepository =
-  createEdgeRepository();
+const nodeService = createNodeService(
+  nodeRepository,
+  notifyNavigationUpdate,
+);
 
-const environmentRepository =
-  createEnvironmentRepository();
+const topologyService = createTopologyService(
+  edgeRepository,
+  nodeRepository,
+  notifyNavigationUpdate,
+);
 
-const poiRepository =
-  createPoiRepository();
+const environmentService = createEnvironmentService(
+  environmentRepository,
+  notifyNavigationUpdate,
+);
 
-const verificationRepository =
-  createVerificationRepository();
+const poiService = createPoiService(
+  poiRepository,
+  nodeRepository,
+  notifyNavigationUpdate,
+);
 
-const alertRepository =
-  createAlertRepository();
+const navigationService = createNavigationService(
+  nodeRepository,
+  edgeRepository,
+  poiRepository,
+);
 
-const nodeService =
-  createNodeService(
-    nodeRepository,
-    notifyNavigationUpdate,
-  );
+const verificationService = createVerificationService(
+  verificationRepository,
+  nodeRepository,
+);
 
-const topologyService =
-  createTopologyService(
-    edgeRepository,
-    nodeRepository,
-    notifyNavigationUpdate,
-  );
-
-const environmentService =
-  createEnvironmentService(
-    environmentRepository,
-    notifyNavigationUpdate,
-  );
-
-const poiService =
-  createPoiService(
-    poiRepository,
-    nodeRepository,
-    notifyNavigationUpdate,
-  );
-
-const navigationService =
-  createNavigationService(
-    nodeRepository,
-    edgeRepository,
-    poiRepository,
-  );
-
-const verificationService =
-  createVerificationService(
-    verificationRepository,
-    nodeRepository,
-  );
-
-const alertService =
-  createAlertService(
-    alertRepository,
-    nodeRepository,
-  );
+const alertService = createAlertService(
+  alertRepository,
+  nodeRepository,
+);
 
 async function syncInfrastructure() {
-  const sensors =
-    await nodeService
-      .listOperational();
+  const sensors = await nodeService.listOperational();
 
-  store.sync(
-    sensors.map(
-      sensor =>
-        sensor.code,
-    ),
-  );
+  store.sync(sensors.map(sensor => sensor.code));
 
-  const links =
-    await topologyService
-      .listOperationalLinks();
+  const links = await topologyService.listOperationalLinks();
 
-  topology.sync(
-    links,
-  );
+  topology.sync(links);
 
   return {
-    sensors:
-      sensors.length,
-
-    links:
-      links.length,
+    sensors: sensors.length,
+    links: links.length,
   };
 }
 
 function syncCurrentAlerts() {
-  const currentAlerts =
-    getDashboard(
-      store,
-      topology,
-    ).alerts;
+  const currentAlerts = getDashboard(store, topology).alerts;
 
-  alertService
-    .syncDashboardAlerts(
-      currentAlerts,
-    );
+  alertService.syncDashboardAlerts(currentAlerts);
 }
 
 function refreshDashboard() {
   emitDashboard();
-
   syncCurrentAlerts();
 }
 
-const coordinator =
-  createCoordinator({
-    store,
+const coordinator = createCoordinator({
+  store,
 
-    sendCheck:
-      nodeId => {
-        sendCheck(
-          nodeId,
-        );
-      },
+  sendCheck: nodeId => {
+    sendCheck(nodeId);
+  },
 
-    sendDashboard:
-      () => {
-        refreshDashboard();
-      },
+  sendDashboard: () => {
+    refreshDashboard();
+  },
 
-    saveVerification:
-      async data => {
-        const run =
-          await verificationService
-            .save(
-              data,
-            );
+  saveVerification: async data => {
+    const run = await verificationService.save(data);
 
-        await alertService
-          .syncVerificationResult({
-            nodeCode:
-              data.nodeCode,
+    await alertService.syncVerificationResult({
+      nodeCode: data.nodeCode,
+      result: data.result,
+      verificationRunId: run.id,
+    });
 
-            result:
-              data.result,
+    return run;
+  },
+});
 
-            verificationRunId:
-              run.id,
-          });
+const web = createWebServer(
+  store,
+  topology,
+  nodeService,
+  topologyService,
+  environmentService,
+  poiService,
+  navigationService,
+  verificationService,
+  alertService,
+  {
+    getStatus: coordinator.getStatus,
+    run: coordinator.runManual,
+  },
+  async () => {
+    await syncInfrastructure();
+    refreshDashboard();
+  },
+  {
+    prisma,
+    requireAdmin,
+  },
+);
 
-        return run;
-      },
-  });
+emitDashboard = web.sendDashboard;
+emitNavigationConfigUpdated = web.sendNavigationConfigUpdated;
 
-const web =
-  createWebServer(
-    store,
-    topology,
-    nodeService,
-    topologyService,
-    environmentService,
-    poiService,
-    navigationService,
-    verificationService,
-    alertService,
-    {
-      getStatus:
-        coordinator.getStatus,
+const mqtt = createMqttService({
+  store,
 
-      run:
-        coordinator.runManual,
-    },
+  onUpdate: () => {
+    refreshDashboard();
+  },
 
-    async () => {
-      await syncInfrastructure();
+  onFinished: coordinator.finishNode,
+});
 
-      refreshDashboard();
-    },
-  );
-
-emitDashboard =
-  web.sendDashboard;
-
-emitNavigationConfigUpdated =
-  web
-    .sendNavigationConfigUpdated;
-
-const mqtt =
-  createMqttService({
-    store,
-
-    onUpdate:
-      () => {
-        refreshDashboard();
-      },
-
-    onFinished:
-      coordinator.finishNode,
-  });
-
-sendCheck =
-  mqtt.sendCheck;
+sendCheck = mqtt.sendCheck;
 
 async function start() {
   console.log();
-  console.log(
-    "========================================",
-  );
-  console.log(
-    "        NAVESCENCE - SISTEMA CENTRAL",
-  );
-  console.log(
-    "========================================",
-  );
+  console.log("========================================");
+  console.log("        NAVESCENCE - SISTEMA CENTRAL");
+  console.log("========================================");
   console.log();
 
-  const infrastructure =
-    await syncInfrastructure();
+  const infrastructure = await syncInfrastructure();
 
   console.log(
     `[INFRA] ${infrastructure.sensors} sensores ativos | ${infrastructure.links} conexões`,
   );
 
   await web.start();
-
   await mqtt.ready;
 
   refreshDashboard();
 
-  await sleep(
-    3000,
-  );
-
+  await sleep(3000);
   await coordinator.start();
 }
 
-start().catch(
-  error => {
-    console.error(
-      "[SISTEMA] Falha ao iniciar NAVESCENCE:",
-      error,
-    );
-  },
-);
+start().catch(error => {
+  console.error(
+    "[SISTEMA] Falha ao iniciar NAVESCENCE:",
+    error,
+  );
+});

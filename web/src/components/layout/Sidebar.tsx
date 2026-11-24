@@ -1,13 +1,12 @@
+
 import {
   Activity,
   Bell,
   Building2,
   CircleDot,
   LayoutDashboard,
-  Map,
   MapPinned,
   Route,
-  Users,
 } from "lucide-react";
 
 import { NavLink } from "react-router-dom";
@@ -49,37 +48,19 @@ const items = [
     label: "Verificações",
     icon: CircleDot,
   },
-  {
-    to: "/admin/navegacoes",
-    label: "Navegações",
-    icon: Map,
-  },
-  {
-    to: "/admin/usuarios",
-    label: "Usuários",
-    icon: Users,
-  },
 ];
 
 export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div
-          className="sidebar-logo"
-          aria-hidden="true"
-        >
+        <div className="sidebar-logo" aria-hidden="true">
           N
         </div>
 
         <div className="sidebar-brand-copy">
-          <strong>
-            NAVESCENCE
-          </strong>
-
-          <span>
-            Sistema central
-          </span>
+          <strong>NAVESCENCE</strong>
+          <span>Sistema central</span>
         </div>
       </div>
 
@@ -99,24 +80,12 @@ export function Sidebar() {
               key={item.to}
               to={item.to}
               end={item.end}
-              className={({
-                isActive,
-              }) =>
-                `sidebar-link ${
-                  isActive
-                    ? "active"
-                    : ""
-                }`
+              className={({ isActive }) =>
+                `sidebar-link ${isActive ? "active" : ""}`
               }
             >
-              <Icon
-                size={19}
-                strokeWidth={1.9}
-              />
-
-              <span>
-                {item.label}
-              </span>
+              <Icon size={19} strokeWidth={1.9} />
+              <span>{item.label}</span>
             </NavLink>
           );
         })}
@@ -124,19 +93,11 @@ export function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="sidebar-system-status">
-          <span
-            className="system-dot"
-            aria-hidden="true"
-          />
+          <span className="system-dot" aria-hidden="true" />
 
           <div>
-            <strong>
-              Sistema central
-            </strong>
-
-            <span>
-              Operacional
-            </span>
+            <strong>Sistema central</strong>
+            <span>Operacional</span>
           </div>
         </div>
       </div>

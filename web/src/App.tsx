@@ -1,88 +1,35 @@
+
 import {
   BrowserRouter,
   Route,
   Routes,
 } from "react-router-dom";
 
-import {
-  ErrorBoundary,
-} from "./components/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/AdminRoute";
+import { AppLayout } from "./components/layout/AppLayout";
 
-import {
-  ProtectedRoute,
-} from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
 
-import {
-  AdminRoute,
-} from "./components/AdminRoute";
+import { HomePage } from "./pages/HomePage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
-import {
-  AppLayout,
-} from "./components/layout/AppLayout";
+import { LoginPage } from "./pages/auth/LoginPage";
+import { CadastroPage } from "./pages/auth/CadastroPage";
 
-import {
-  AuthProvider,
-} from "./context/AuthContext";
+import { ContaPage } from "./pages/user/ContaPage";
+import { HistoricoUsuarioPage } from "./pages/user/HistoricoUsuarioPage";
 
-import {
-  HomePage,
-} from "./pages/HomePage";
-
-import {
-  NotFoundPage,
-} from "./pages/NotFoundPage";
-
-import {
-  LoginPage,
-} from "./pages/auth/LoginPage";
-
-import {
-  CadastroPage,
-} from "./pages/auth/CadastroPage";
-
-import {
-  ContaPage,
-} from "./pages/user/ContaPage";
-
-import {
-  HistoricoUsuarioPage,
-} from "./pages/user/HistoricoUsuarioPage";
-
-import {
-  DashboardPage,
-} from "./pages/admin/DashboardPage";
-
-import {
-  SensoresPage,
-} from "./pages/admin/SensoresPage";
-
-import {
-  SensorDetalhePage,
-} from "./pages/admin/SensorDetalhePage";
-
-import {
-  AlertasPage,
-} from "./pages/admin/AlertasPage";
-
-import {
-  AmbientesPage,
-} from "./pages/admin/AmbientesPage";
-
-import {
-  PoisPage,
-} from "./pages/admin/PoisPage";
-
-import {
-  TopologiaPage,
-} from "./pages/admin/TopologiaPage";
-
-import {
-  UsuariosPage,
-} from "./pages/admin/UsuariosPage";
-
-import {
-  HistoricoPage,
-} from "./pages/admin/HistoricoPage";
+import { DashboardPage } from "./pages/admin/DashboardPage";
+import { SensoresPage } from "./pages/admin/SensoresPage";
+import { SensorDetalhePage } from "./pages/admin/SensorDetalhePage";
+import { AlertasPage } from "./pages/admin/AlertasPage";
+import { AmbientesPage } from "./pages/admin/AmbientesPage";
+import { PoisPage } from "./pages/admin/PoisPage";
+import { TopologiaPage } from "./pages/admin/TopologiaPage";
+import { UsuariosPage } from "./pages/admin/UsuariosPage";
+import { HistoricoPage } from "./pages/admin/HistoricoPage";
 
 export default function App() {
   return (
@@ -90,30 +37,20 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* PÚBLICAS */}
-
             <Route
               path="/"
-              element={
-                <HomePage />
-              }
+              element={<HomePage />}
             />
 
             <Route
               path="/login"
-              element={
-                <LoginPage />
-              }
+              element={<LoginPage />}
             />
 
             <Route
               path="/cadastro"
-              element={
-                <CadastroPage />
-              }
+              element={<CadastroPage />}
             />
-
-            {/* USUÁRIO AUTENTICADO */}
 
             <Route
               path="/conta"
@@ -133,8 +70,6 @@ export default function App() {
               }
             />
 
-            {/* ADMINISTRAÇÃO */}
-
             <Route
               element={
                 <AdminRoute>
@@ -144,82 +79,58 @@ export default function App() {
             >
               <Route
                 path="/admin"
-                element={
-                  <DashboardPage />
-                }
+                element={<DashboardPage />}
               />
 
               <Route
                 path="/admin/sensores"
-                element={
-                  <SensoresPage />
-                }
+                element={<SensoresPage />}
               />
 
               <Route
                 path="/admin/sensores/:code"
-                element={
-                  <SensorDetalhePage />
-                }
+                element={<SensorDetalhePage />}
               />
 
               <Route
                 path="/admin/ambientes"
-                element={
-                  <AmbientesPage />
-                }
+                element={<AmbientesPage />}
               />
 
               <Route
                 path="/admin/pois"
-                element={
-                  <PoisPage />
-                }
+                element={<PoisPage />}
               />
 
               <Route
                 path="/admin/topologia"
-                element={
-                  <TopologiaPage />
-                }
+                element={<TopologiaPage />}
               />
 
               <Route
                 path="/admin/alertas"
-                element={
-                  <AlertasPage />
-                }
+                element={<AlertasPage />}
               />
 
               <Route
                 path="/admin/historico"
-                element={
-                  <HistoricoPage />
-                }
+                element={<HistoricoPage />}
               />
 
               <Route
                 path="/admin/navegacoes"
-                element={
-                  <HistoricoUsuarioPage />
-                }
+                element={<HistoricoUsuarioPage />}
               />
 
               <Route
                 path="/admin/usuarios"
-                element={
-                  <UsuariosPage />
-                }
+                element={<UsuariosPage />}
               />
             </Route>
 
-            {/* 404 */}
-
             <Route
               path="*"
-              element={
-                <NotFoundPage />
-              }
+              element={<NotFoundPage />}
             />
           </Routes>
         </AuthProvider>

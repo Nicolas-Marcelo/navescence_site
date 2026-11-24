@@ -1,136 +1,100 @@
-const TOKEN_KEY =
-  "navescence_auth_token";
 
-const AUTH_EXPIRED_EVENT =
-  "navescence:auth-expired";
+import {
+  handleImportedMutation,
+  isImportedMutationPath,
+} from "./importedEnvironmentCrud";
 
-export class ApiError
-  extends Error {
+const TOKEN_KEY = "navescence_auth_token";
+const AUTH_EXPIRED_EVENT = "navescence:auth-expired";
+
+export class ApiError extends Error {
   status: number;
   code?: string;
 
-  constructor(
-    message: string,
-    status: number,
-    code?: string,
-  ) {
+  constructor(message: string, status: number, code?: string) {
     super(message);
-
-    this.name =
-      "ApiError";
-
-    this.status =
-      status;
-
-    this.code =
-      code;
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
   }
 }
 
 export function getToken() {
-  return localStorage.getItem(
-    TOKEN_KEY,
-  );
+  return localStorage.getItem(TOKEN_KEY);
 }
 
-export function saveToken(
-  token: string,
-) {
-  localStorage.setItem(
-    TOKEN_KEY,
-    token,
-  );
+export function saveToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function removeToken() {
-  localStorage.removeItem(
-    TOKEN_KEY,
-  );
+  localStorage.removeItem(TOKEN_KEY);
 }
 
 function notifyExpiredSession() {
   removeToken();
-
-  window.dispatchEvent(
-    new CustomEvent(
-      AUTH_EXPIRED_EVENT,
-    ),
-  );
+  window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
 }
 
-export function
-onAuthExpired(
-  listener: () => void,
-) {
-  const handler =
-    () => listener();
+export function onAuthExpired(listener: () => void) {
+  const handler = () => listener();
 
-  window.addEventListener(
-    AUTH_EXPIRED_EVENT,
-    handler,
-  );
+  window.addEventListener(AUTH_EXPIRED_EVENT, handler);
 
   return () => {
-    window.removeEventListener(
-      AUTH_EXPIRED_EVENT,
-      handler,
-    );
+    window.removeEventListener(AUTH_EXPIRED_EVENT, handler);
   };
 }
 
-interface ApiRequestOptions
-  extends RequestInit {
+interface ApiRequestOptions extends RequestInit {
   authenticated?: boolean;
 }
 
-export async function
-apiRequest<T>(
+export async function apiRequest<T>(
   path: string,
-  options:
-    ApiRequestOptions = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
-  const token =
-    getToken();
+  const token = getToken();
+  const method = (options.method ?? "GET").toUpperCase();
 
-  const headers =
-    new Headers(
-      options.headers,
-    );
+  if (options.authenticated && isImportedMutationPath(path, method)) {
+    if (!token) {
+      notifyExpiredSession();
+      throw new ApiError("Sessão não autenticada.", 401, "UNAUTHORIZED");
+    }
 
-  if (
-    options.body &&
-    !headers.has(
-      "Content-Type",
-    )
-  ) {
-    headers.set(
-      "Content-Type",
-      "application/json",
-    );
+    let body: unknown = {};
+
+    if (typeof options.body === "string" && options.body.trim()) {
+      try {
+        body = JSON.parse(options.body);
+      } catch {
+        throw new ApiError("Dados da requisição inválidos.", 400);
+      }
+    }
+
+    return await handleImportedMutation(
+      path,
+      method,
+      body,
+      token,
+    ) as T;
   }
 
-  if (
-    options.authenticated &&
-    token
-  ) {
-    headers.set(
-      "Authorization",
-      `Bearer ${token}`,
-    );
+  const headers = new Headers(options.headers);
+
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
-  let response:
-    Response;
+  if (options.authenticated && token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  let response: Response;
 
   try {
-    response =
-      await fetch(
-        path,
-        {
-          ...options,
-          headers,
-        },
-      );
+    response = await fetch(path, { ...options, headers });
   } catch {
     throw new ApiError(
       "Não foi possível conectar ao servidor.",
@@ -139,72 +103,35 @@ apiRequest<T>(
     );
   }
 
-  const contentType =
-    response.headers.get(
-      "content-type",
-    ) ?? "";
+  const contentType = response.headers.get("content-type") ?? "";
+  let data: unknown = null;
 
-  let data:
-    unknown = null;
-
-  if (
-    contentType.includes(
-      "application/json",
-    )
-  ) {
+  if (contentType.includes("application/json")) {
     try {
-      data =
-        await response.json();
+      data = await response.json();
     } catch {
       data = null;
     }
   }
 
   if (!response.ok) {
-    const object =
-      data &&
-      typeof data ===
-        "object"
-        ? data as
-          Record<
-            string,
-            unknown
-          >
-        : null;
+    const object = data && typeof data === "object"
+      ? data as Record<string, unknown>
+      : null;
 
-    const code =
-      typeof object?.error ===
-        "string"
-        ? object.error
-        : undefined;
+    const code = typeof object?.error === "string"
+      ? object.error
+      : undefined;
 
-    const message =
-      typeof object?.message ===
-        "string"
-        ? object.message
-        : code ??
-          `Erro HTTP ${response.status}`;
+    const message = typeof object?.message === "string"
+      ? object.message
+      : code ?? `Erro HTTP ${response.status}`;
 
-    /*
-     * Só encerra a sessão quando
-     * uma chamada autenticada
-     * recebe 401.
-     *
-     * Um 403 significa apenas
-     * falta de permissão.
-     */
-    if (
-      options.authenticated &&
-      response.status === 401
-    ) {
+    if (options.authenticated && response.status === 401) {
       notifyExpiredSession();
     }
 
-    throw new ApiError(
-      message,
-      response.status,
-      code,
-    );
+    throw new ApiError(message, response.status, code);
   }
 
   return data as T;

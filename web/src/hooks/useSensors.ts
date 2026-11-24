@@ -1,3 +1,4 @@
+
 import {
   useCallback,
   useEffect,
@@ -9,72 +10,64 @@ import {
   getSensors,
 } from "../services/sensorService";
 
+import { useEnvironmentData } from "../context/EnvironmentDataContext";
+
 import type {
   DashboardData,
   Sensor,
 } from "../types/sensor";
 
-export function useSensors(
-  autoRefresh = false,
-) {
-  const [sensors, setSensors] =
-    useState<Sensor[]>([]);
+export function useSensors(autoRefresh = false) {
+  const environmentData = useEnvironmentData();
 
-  const [dashboard, setDashboard] =
-    useState<DashboardData>({
-      nodes: {},
-    });
+  const [physicalSensors, setPhysicalSensors] = useState<Sensor[]>([]);
+  const [dashboard, setDashboard] = useState<DashboardData>({
+    nodes: {},
+  });
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [error, setError] =
-    useState<string | null>(null);
+  const reload = useCallback(async () => {
+    try {
+      setError(null);
 
-  const reload =
-    useCallback(async () => {
-      try {
-        setError(null);
+      const [sensorData, dashboardData] = await Promise.all([
+        getSensors(),
+        getDashboard(),
+      ]);
 
-        const [
-          sensorData,
-          dashboardData,
-        ] = await Promise.all([
-          getSensors(),
-          getDashboard(),
-        ]);
-
-        setSensors(sensorData);
-        setDashboard(dashboardData);
-      } catch {
-        setError(
-          "Não foi possível carregar os sensores.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }, []);
+      setPhysicalSensors(sensorData);
+      setDashboard(dashboardData);
+    } catch {
+      setError("Não foi possível carregar os sensores.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void reload();
 
     if (!autoRefresh) return;
 
-    const timer =
-      window.setInterval(
-        () => void reload(),
-        5000,
-      );
+    const timer = window.setInterval(
+      () => void reload(),
+      5000,
+    );
 
-    return () =>
-      window.clearInterval(timer);
+    return () => window.clearInterval(timer);
   }, [autoRefresh, reload]);
+
+  const sensors = environmentData.imported
+    ? environmentData.sensors
+    : physicalSensors;
 
   return {
     sensors,
     dashboard,
-    loading,
-    error,
+    loading: loading || environmentData.loading,
+    error: environmentData.error ?? error,
     reload,
   };
 }

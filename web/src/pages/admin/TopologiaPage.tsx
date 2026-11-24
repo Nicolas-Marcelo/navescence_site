@@ -882,30 +882,6 @@ export function TopologiaPage() {
                 },
               )}
 
-              {dividerBlocks.map(
-                (
-                  block,
-                  index,
-                ) => (
-                  <rect
-                    key={
-                      `divider-${index}`
-                    }
-                    x={block.x}
-                    y={block.y}
-                    width={
-                      block.width
-                    }
-                    height={
-                      block.height
-                    }
-                    rx="2"
-                    fill="#89949a"
-                    opacity="0.75"
-                  />
-                ),
-              )}
-
               {spatialSensors.map(
                 sensor => {
                   const p =
